@@ -6787,8 +6787,14 @@ class Redis_Test extends TestSuite
 
         foreach (['localhost' => true, '127.0.0.1' => false] as $host => $verify) {
             $redis = new Redis();
-            $this->assertTrue($redis->connect('tls://' . $host, 6378, 0, null, 0, 0, [
-                'stream' => ['verify_peer_name' => $verify, 'verify_peer' => false]
+            $this->assertTrue($redis->connect('ssl://' . $host, 6378, 0, null, 0, 0, [
+                'stream' => [
+                    'cafile' => __DIR__ . '/../ca.pem',
+                    'verify_peer_name' => $verify,
+                    'disable_compression' => true,
+                    'allow_self_signed' => true,
+                    'security_level' => 0,
+                ]
             ]));
         }
     }

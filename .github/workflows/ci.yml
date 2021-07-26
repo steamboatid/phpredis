@@ -43,6 +43,12 @@ jobs:
             redis-server --port $PORT --daemonize yes --aclfile tests/users.acl
           done
           redis-server --port 0 --unixsocket /tmp/redis.sock --daemonize yes --aclfile tests/users.acl
+
+          openssl genrsa -out ca.key 2048
+          openssl req -x509 -new -nodes -key ca.key -days 1 -out ca.pem -subj '/'
+          openssl req -new -newkey rsa:2048 -nodes -keyout redis.key -out redis.csr -subj '/CN=localhost'
+          openssl x509 -req -in redis.csr -CA ca.pem -CAkey ca.key -CAcreateserial -out redis.pem -days 1
+          redis-server --port 0 --tls-port 6378 --tls-cert-file redis.pem --tls-key-file redis.key --tls-ca-cert-file ca.pem --daemonize yes --aclfile tests/users.acl
       - name: Start redis cluster
         run: |
           mkdir -p tests/nodes
