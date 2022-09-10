@@ -9,6 +9,8 @@ libtool
 ./*.sh
 configure*
 *.lo
+*.la
+*.so
 build*
 missing
 autom4te.cache
