@@ -101,6 +101,18 @@ redis.session.lock_wait_time = 50000
 redis.session.lock_retries = 2000
 ~~~
 
+## Distributed Redis Array
+
+See [dedicated page](./arrays.markdown#readme).
+
+## Redis Cluster support
+
+See [dedicated page](./cluster.markdown#readme).
+
+## Redis Sentinel support
+
+See [dedicated page](./sentinel.markdown#readme).
+
 ## Running the unit tests
 
 phpredis uses a small custom unit test suite for testing functionality of the various classes.  To run tests, simply do the following:
@@ -4412,3 +4424,24 @@ None
 
 ### *Return value*
 *Mixed*  Returns NULL if no username/password are set, the password string if a password is set, and a `[username, password]` array if authenticated with a username and password.
+
+
+
+
+Related repos :
+---------------
+ - https://github.com/steamboatid/keydb
+ - https://github.com/steamboatid/phpredis
+ - https://github.com/steamboatid/nginx
+ - https://github.com/steamboatid/lua-resty-core
+ - https://github.com/steamboatid/lua-resty-lrucache
+ - https://github.com/steamboatid/ext-http
+ - https://github.com/steamboatid/nginx_accept_language_module
+ - https://github.com/steamboatid/apt-mirror
+ - https://github.com/steamboatid/db4
+ - https://github.com/steamboatid/sshfs
+ - https://github.com/steamboatid/libfuse
+ - https://github.com/steamboatid/libzip
+ - https://github.com/steamboatid/nutcracker
+ - https://github.com/steamboatid/dkbuild
+

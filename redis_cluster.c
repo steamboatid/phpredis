@@ -989,7 +989,7 @@ PHP_METHOD(RedisCluster, sismember) {
 
 /* {{{ proto long RedisCluster::sadd(string key, string val1 [, ...]) */
 PHP_METHOD(RedisCluster, sadd) {
-    CLUSTER_PROCESS_KW_CMD("SADD", redis_key_varval_cmd, cluster_long_resp, 0);
+    CLUSTER_PROCESS_KW_CMD("SADD", redis_key_val_arr_cmd, cluster_long_resp, 0);
 }
 /* }}} */
 
@@ -999,9 +999,28 @@ PHP_METHOD(RedisCluster, saddarray) {
 }
 /* }}} */
 
+/* {{{ proto long RedisCluster::saddint(string key, string val1 [, ...]) */
+PHP_METHOD(RedisCluster, saddint) {
+    CLUSTER_PROCESS_KW_CMD("SADDINT", redis_key_long_arr_cmd, cluster_long_resp, 0);
+}
+/* }}} */
+
+/* {{{ proto long RedisCluster::saddintarray(string key, array values) */
+PHP_METHOD(RedisCluster, saddintarray) {
+    CLUSTER_PROCESS_KW_CMD("SADDINT", redis_key_long_arr_cmd, cluster_long_resp, 0);
+}
+/* }}} */
+
 /* {{{ proto long RedisCluster::srem(string key, string val1 [, ...]) */
 PHP_METHOD(RedisCluster, srem) {
-    CLUSTER_PROCESS_KW_CMD("SREM", redis_key_varval_cmd, cluster_long_resp, 0);
+    //CLUSTER_PROCESS_KW_CMD("SREM", redis_key_varval_cmd, cluster_long_resp, 0);
+    CLUSTER_PROCESS_KW_CMD("SREM", redis_key_val_arr_cmd, cluster_long_resp, 0);
+}
+/* }}} */
+
+/* {{{ proto long RedisCluster::sremint(string key, string val1 [, ...]) */
+PHP_METHOD(RedisCluster, sremint) {
+    CLUSTER_PROCESS_KW_CMD("SREM", redis_key_long_arr_cmd, cluster_long_resp, 0);
 }
 /* }}} */
 

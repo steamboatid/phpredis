@@ -1338,7 +1338,7 @@ int redis_eval_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock, char *kw
 }
 
 /* Commands that take a key followed by a variable list of serializable
- * values (RPUSH, LPUSH, SADD, SREM, etc...) */
+ * values (RPUSH, LPUSH, SADD, SADDINT, SREM, SREMINT, etc...) */
 int redis_key_varval_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
                          char *kw, char **cmd, int *cmd_len, short *slot,
                          void **ctx)
@@ -1387,6 +1387,7 @@ int redis_key_varval_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
 /* Commands that take a key and then an array of values */
 #define VAL_TYPE_VALUES 1
 #define VAL_TYPE_STRINGS 2
+#define VAL_TYPE_LONGS 3
 static int gen_key_arr_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
                            char *kw, int valtype, char **cmd, int *cmd_len,
                            short *slot, void **ctx)
@@ -1398,6 +1399,7 @@ static int gen_key_arr_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
     int key_free, val_free, argc = 1;
     size_t val_len, key_len;
     char *key, *val;
+    long lval;
 
     if (zend_parse_parameters(ZEND_NUM_ARGS(), "sa", &key, &key_len,
                               &z_arr) == FAILURE ||
@@ -1424,6 +1426,9 @@ static int gen_key_arr_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
             val_free = redis_pack(redis_sock, z_val, &val, &val_len);
             redis_cmd_append_sstr(&cmdstr, val, val_len);
             if (val_free) efree(val);
+        } else if (valtype == VAL_TYPE_LONGS) {
+            lval = zval_get_long(z_val);
+            redis_cmd_append_sstr_int(&cmdstr, lval);
         } else {
             zstr = zval_get_string(z_val);
             redis_cmd_append_sstr(&cmdstr, ZSTR_VAL(zstr), ZSTR_LEN(zstr));
@@ -1451,6 +1456,14 @@ int redis_key_str_arr_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
 {
     return gen_key_arr_cmd(INTERNAL_FUNCTION_PARAM_PASSTHRU, redis_sock, kw,
         VAL_TYPE_STRINGS, cmd, cmd_len, slot, ctx);
+}
+
+int redis_key_long_arr_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
+                        char *kw, char **cmd, int *cmd_len, short *slot,
+                        void **ctx)
+{
+    return gen_key_arr_cmd(INTERNAL_FUNCTION_PARAM_PASSTHRU, redis_sock, kw,
+        VAL_TYPE_LONGS, cmd, cmd_len, slot, ctx);
 }
 
 /* Generic function that takes a variable number of keys, with an optional
