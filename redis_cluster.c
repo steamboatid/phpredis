@@ -1040,6 +1040,13 @@ PHP_METHOD(RedisCluster, sunionstore) {
 PHP_METHOD(RedisCluster, sinter) {
     CLUSTER_PROCESS_CMD(sinter, cluster_mbulk_resp, 0);
 }
+
+/* {{{ proto RedisCluster::sintercard(array $keys, int $count = -1) */
+PHP_METHOD(RedisCluster, sintercard) {
+    CLUSTER_PROCESS_KW_CMD("SINTERCARD", redis_intercard_cmd, cluster_long_resp, 0);
+}
+/* }}} */
+
 /* }}} */
 
 /* {{{ ptoto long RedisCluster::sinterstore(string dst, string k1, ... kN) */
@@ -1327,13 +1334,18 @@ PHP_METHOD(RedisCluster, lget) {
 }
 /* }}} */
 
-/* {{{ proto string RedisCluster::getrange(string key, long start, long end) */
-PHP_METHOD(RedisCluster, getrange) {
+/* {{{ proto string RedisCluster::getrange(string key, long start, long end) */ PHP_METHOD(RedisCluster, getrange) {
     CLUSTER_PROCESS_KW_CMD("GETRANGE", redis_key_long_long_cmd,
         cluster_bulk_resp, 1);
 }
 /* }}} */
 
+/* {{{ prot RedisCluster::lcs(string $key1, string $key2, ?array $options = NULL): mixed; */
+PHP_METHOD(RedisCluster, lcs) {
+    CLUSTER_PROCESS_CMD(lcs, cluster_variant_resp, 1);
+}
+
+/* }}} */
 /* {{{ proto string RedisCluster::ltrim(string key, long start, long end) */
 PHP_METHOD(RedisCluster, ltrim) {
     CLUSTER_PROCESS_KW_CMD("LTRIM", redis_key_long_long_cmd, cluster_bool_resp, 0);
@@ -1473,6 +1485,12 @@ PHP_METHOD(RedisCluster, zunionstore) {
  *                                     string agg]) */
 PHP_METHOD(RedisCluster, zinterstore) {
     CLUSTER_PROCESS_KW_CMD("ZINTERSTORE", redis_zinterunionstore_cmd, cluster_long_resp, 0);
+}
+/* }}} */
+
+/* {{{ proto RedisCluster::zintercard(array $keys, int $count = -1) */
+PHP_METHOD(RedisCluster, zintercard) {
+    CLUSTER_PROCESS_KW_CMD("ZINTERCARD", redis_intercard_cmd, cluster_long_resp, 0);
 }
 /* }}} */
 

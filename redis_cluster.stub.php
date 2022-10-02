@@ -124,6 +124,8 @@ class RedisCluster {
 
     public function getrange(string $key, int $start, int $end): string;
 
+    public function lcs(string $key1, string $key2, ?array $options = NULL): Redis|string|array|int|false;
+
     public function getset(string $key, mixed $value): string;
 
     public function hdel(string $key, string $member, string ...$other_members): int;
@@ -276,6 +278,8 @@ class RedisCluster {
 
     public function sinter(string $key, string ...$other_keys): array;
 
+    public function sintercard(array $keys, int $limit = -1): Redis|int|false;
+
     public function sinterstore(string $dst, string $key, string ...$other_keys): bool;
 
     public function sismember(string $key): int;
@@ -353,6 +357,8 @@ class RedisCluster {
     public function zincrby(string $key, float $value, string $member): float;
 
     public function zinterstore(string $key, array $keys, array $weights = null, string $aggregate = null): int;
+
+    public function zintercard(array $keys, int $limit = -1): Redis|int|false;
 
     public function zlexcount(string $key, string $min, string $max): int;
 

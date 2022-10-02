@@ -386,19 +386,25 @@ redis_check_eof(RedisSock *redis_sock, zend_bool no_retry, zend_bool no_throw)
     return -1;
 }
 
-
 PHP_REDIS_API int
 redis_sock_read_scan_reply(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
                            REDIS_SCAN_TYPE type, zend_long *iter)
 {
     REDIS_REPLY_TYPE reply_type;
     long reply_info;
-    char *p_iter;
+    char err[4096], *p_iter;
+    size_t errlen;
 
     /* Our response should have two multibulk replies */
     if(redis_read_reply_type(redis_sock, &reply_type, &reply_info)<0
        || reply_type != TYPE_MULTIBULK || reply_info != 2)
     {
+        if (reply_type == TYPE_ERR) {
+            if (redis_sock_gets(redis_sock, err, sizeof(err), &errlen) == 0) {
+                redis_sock_set_err(redis_sock, err, errlen);
+            }
+        }
+
         return -1;
     }
 
@@ -1378,6 +1384,7 @@ redis_lpos_response(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock, zval *z
     int i, numElems;
     size_t len;
     zval z_ret;
+    long lval;
 
     if (redis_sock_gets(redis_sock, inbuf, sizeof(inbuf), &len) < 0) {
         goto failure;
@@ -1387,7 +1394,14 @@ redis_lpos_response(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock, zval *z
         if (*inbuf != TYPE_INT && *inbuf != TYPE_BULK) {
             goto failure;
         }
-        ZVAL_LONG(&z_ret, atol(inbuf + 1));
+        lval = atol(inbuf + 1);
+        if (lval > -1) {
+            ZVAL_LONG(&z_ret, lval);
+        } else if (redis_sock->null_mbulk_as_null) {
+            ZVAL_NULL(&z_ret);
+        } else {
+            ZVAL_FALSE(&z_ret);
+        }
     } else if (ctx == PHPREDIS_CTX_PTR) {
         if (*inbuf != TYPE_MULTIBULK) {
             goto failure;
@@ -3486,6 +3500,47 @@ redis_key_prefix(RedisSock *redis_sock, char **key, size_t *key_len) {
     *key = ret;
     *key_len = ret_len;
     return 1;
+}
+
+/* This is very similar to PHP >= 7.4 zend_string_concat2 only we are taking
+ * two zend_string arguments rather than two char*, size_t pairs */
+static zend_string *redis_zstr_concat(zend_string *prefix, zend_string *suffix) {
+    zend_string *res;
+    size_t len;
+
+    ZEND_ASSERT(prefix != NULL && suffix != NULL);
+
+    len = ZSTR_LEN(prefix) + ZSTR_LEN(suffix);
+    res = zend_string_alloc(len, 0);
+
+    memcpy(ZSTR_VAL(res), ZSTR_VAL(prefix), ZSTR_LEN(prefix));
+    memcpy(ZSTR_VAL(res) + ZSTR_LEN(prefix), ZSTR_VAL(suffix), ZSTR_LEN(suffix));
+    ZSTR_VAL(res)[len] = '\0';
+
+    return res;
+}
+
+PHP_REDIS_API zend_string *
+redis_key_prefix_zval(RedisSock *redis_sock, zval *zv) {
+    zend_string *zstr, *dup;
+
+    zstr = zval_get_string(zv);
+    if (redis_sock->prefix == NULL)
+        return zstr;
+
+    dup = redis_zstr_concat(redis_sock->prefix, zstr);
+
+    zend_string_release(zstr);
+
+    return dup;
+}
+
+PHP_REDIS_API zend_string *
+redis_key_prefix_zstr(RedisSock *redis_sock, zend_string *key) {
+    if (redis_sock->prefix == NULL)
+        return zend_string_copy(key);
+
+    return redis_zstr_concat(redis_sock->prefix, key);
 }
 
 /*

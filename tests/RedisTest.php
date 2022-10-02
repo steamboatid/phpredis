@@ -206,6 +206,30 @@ class Redis_Test extends TestSuite
         $this->assertFalse($this->redis->pubsub("numsub", "not-an-array"));
     }
 
+    /* These test cases were generated randomly.  We're just trying to test
+       that PhpRedis handles all combination of arguments correctly. */
+    public function testBitcount() {
+        /* key */
+        $this->redis->set('bitcountkey', hex2bin('bd906b854ca76cae'));
+        $this->assertEquals(33, $this->redis->bitcount('bitcountkey'));
+
+        /* key, start */
+        $this->redis->set('bitcountkey', hex2bin('400aac171382a29bebaab554f178'));
+        $this->assertEquals(4, $this->redis->bitcount('bitcountkey', 13));
+
+        /* key, start, end */
+        $this->redis->set('bitcountkey', hex2bin('b1f32405'));
+        $this->assertEquals(2, $this->redis->bitcount('bitcountkey', 3, 3));
+
+        /* key, start, end BYTE */
+        $this->redis->set('bitcountkey', hex2bin('10eb8939e68bfdb640260f0629f3'));
+        $this->assertEquals(1, $this->redis->bitcount('bitcountkey', 8, 8, false));
+
+        /* key, start, end, BIT */
+        $this->redis->set('bitcountkey', hex2bin('cd0e4c80f9e4590d888a10'));
+        $this->assertEquals(5, $this->redis->bitcount('bitcountkey', 0, 9, true));
+    }
+
     public function testBitsets() {
 
         $this->redis->del('key');
@@ -246,6 +270,27 @@ class Redis_Test extends TestSuite
 
         $this->redis->setBit('key', 0x7fffffff, 1);
         $this->assertEquals(1, $this->redis->getBit('key', 0x7fffffff));
+    }
+
+    public function testLcs() {
+        $key1 = '{lcs}1'; $key2 = '{lcs}2';
+        $this->assertTrue($this->redis->set($key1, '12244447777777'));
+        $this->assertTrue($this->redis->set($key2, '6666662244441'));
+
+        $this->assertEquals('224444', $this->redis->lcs($key1, $key2));
+
+        $this->assertEquals(
+            ['matches', [[[1, 6], [6, 11]]], 'len', 6],
+            $this->redis->lcs($key1, $key2, ['idx'])
+        );
+        $this->assertEquals(
+            ['matches', [[[1, 6], [6, 11], 6]], 'len', 6],
+            $this->redis->lcs($key1, $key2, ['idx', 'withmatchlen'])
+        );
+
+        $this->assertEquals(6, $this->redis->lcs($key1, $key2, ['len']));
+
+        $this->redis->del([$key1, $key2]);
     }
 
     public function testBitPos() {
@@ -939,18 +984,24 @@ class Redis_Test extends TestSuite
     }
 
     public function testblockingPop() {
+        /* Test with a double timeout in Redis >= 6.0.0 */
+        if (version_compare($this->version, "6.0.0") >= 0) {
+            $this->redis->del('list');
+            $this->redis->lpush('list', 'val1', 'val2');
+            $this->assertEquals(['list', 'val2'], $this->redis->blpop(['list'], .1));
+            $this->assertEquals(['list', 'val1'], $this->redis->blpop(['list'], .1));
+        }
+
         // non blocking blPop, brPop
         $this->redis->del('list');
-        $this->redis->lPush('list', 'val1');
-        $this->redis->lPush('list', 'val2');
-        $this->assertTrue($this->redis->blPop(['list'], 2) === ['list', 'val2']);
-        $this->assertTrue($this->redis->blPop(['list'], 2) === ['list', 'val1']);
+        $this->redis->lPush('list', 'val1', 'val2');
+        $this->assertEquals(['list', 'val2'], $this->redis->blPop(['list'], 2));
+        $this->assertEquals(['list', 'val1'], $this->redis->blPop(['list'], 2));
 
         $this->redis->del('list');
-        $this->redis->lPush('list', 'val1');
-        $this->redis->lPush('list', 'val2');
-        $this->assertTrue($this->redis->brPop(['list'], 1) === ['list', 'val1']);
-        $this->assertTrue($this->redis->brPop(['list'], 1) === ['list', 'val2']);
+        $this->redis->lPush('list', 'val1', 'val2');
+        $this->assertEquals(['list', 'val1'], $this->redis->brPop(['list'], 1));
+        $this->assertEquals(['list', 'val2'], $this->redis->brPop(['list'], 1));
 
         // blocking blpop, brpop
         $this->redis->del('list');
@@ -1025,7 +1076,12 @@ class Redis_Test extends TestSuite
         $this->assertEquals([0, 1], $this->redis->lPos('key', 'val1', ['count' => 2]));
         $this->assertEquals([0], $this->redis->lPos('key', 'val1', ['count' => 2, 'maxlen' => 1]));
         $this->assertEquals([], $this->redis->lPos('key', 'val2', ['count' => 1]));
-        $this->assertEquals(-1, $this->redis->lPos('key', 'val2'));
+
+        foreach ([[true, NULL], [false, false]] as $optpack) {
+            list ($setting, $expected) = $optpack;
+            $this->redis->setOption(Redis::OPT_NULL_MULTIBULK_AS_NULL, $setting);
+            $this->assertEquals($expected, $this->redis->lPos('key', 'val2'));
+        }
     }
 
     // ltrim, lsize, lpop
@@ -1911,6 +1967,55 @@ class Redis_Test extends TestSuite
         $this->redis->del('{set}z');  // x, y, and z ALL missing
         $count = $this->redis->sDiffStore('{set}k', '{set}x', '{set}y', '{set}z');  // x - y - z
         $this->assertTrue($count === 0);
+    }
+
+    public function testInterCard() {
+        if(version_compare($this->version, "7.0.0") < 0) {
+            $this->markTestSkipped();
+        }
+
+        $set_data = [
+            ['aardvark', 'dog', 'fish', 'squirrel', 'tiger'],
+            ['bear', 'coyote', 'fish', 'gorilla', 'dog']
+        ];
+
+        $ssets = $zsets = [];
+
+        foreach ($set_data as $n => $values) {
+            $sset = "s{set}:$n";
+            $zset = "z{set}:$n";
+
+            $this->redis->del([$sset, $zset]);
+
+            $ssets[] = $sset;
+            $zsets[] = $zset;
+
+            foreach ($values as $score => $value) {
+                $this->assertEquals(1, $this->redis->sAdd("s{set}:$n", $value));
+                $this->assertEquals(1, $this->redis->zAdd("z{set}:$n", $score, $value));
+            }
+        }
+
+        $exp = count(array_intersect(...$set_data));
+
+        $act = $this->redis->sintercard($ssets);
+        $this->assertEquals($exp, $act);
+        $act = $this->redis->zintercard($zsets);
+        $this->assertEquals($exp, $act);
+
+        $this->assertEquals(1, $this->redis->sintercard($ssets, 1));
+        $this->assertEquals(2, $this->redis->sintercard($ssets, 2));
+
+        $this->assertEquals(1, $this->redis->zintercard($zsets, 1));
+        $this->assertEquals(2, $this->redis->zintercard($zsets, 2));
+
+        $this->assertFalse(@$this->redis->sintercard($ssets, -1));
+        $this->assertFalse(@$this->redis->zintercard($ssets, -1));
+
+        $this->assertFalse(@$this->redis->sintercard([]));
+        $this->assertFalse(@$this->redis->zintercard([]));
+
+        $this->redis->del(array_merge($ssets, $zsets));
     }
 
     public function testlrange() {
@@ -5307,6 +5412,31 @@ class Redis_Test extends TestSuite
         $this->redis->setOption(Redis::OPT_NULL_MULTIBULK_AS_NULL, false);
     }
 
+    public function testConfig() {
+        /* GET */
+        $cfg = $this->redis->config('GET', 'timeout');
+        $this->assertTrue(is_array($cfg) && isset($cfg['timeout']));
+        $sec = $cfg['timeout'];
+
+        /* SET */
+        foreach ([$sec + 30, $sec] as $val) {
+            $this->assertTrue($this->redis->config('SET', 'timeout', $val));
+            $cfg = $this->redis->config('GET', 'timeout');
+            $this->assertTrue(isset($cfg['timeout']) && $cfg['timeout'] == $val);
+        }
+
+        /* RESETSTAT */
+        $c1 = count($this->redis->info('commandstats'));
+        $this->assertTrue($this->redis->config('resetstat'));
+        $this->assertTrue(count($this->redis->info('commandstats')) < $c1);
+
+        /* Ensure invalid calls are handled by PhpRedis */
+        foreach (['notacommand', 'get', 'set'] as $cmd) {
+            $this->assertFalse($this->redis->config($cmd));
+        }
+        $this->assertFalse($this->redis->config('set', 'foo'));
+    }
+
     public function testReconnectSelect() {
         $key = 'reconnect-select';
         $value = 'Has been set!';
@@ -5664,6 +5794,17 @@ class Redis_Test extends TestSuite
         $this->assertTrue($i_skips > 0);
         $this->assertEquals((float)0, $i_p_score);
         $this->assertEquals(0, $i_p_count);
+    }
+
+    /* Make sure we capture errors when scanning */
+    public function testScanErrors() {
+        $this->redis->set('scankey', 'simplekey');
+
+        foreach (['sScan', 'hScan', 'zScan'] as $str_method) {
+            $it = NULL;
+            $this->redis->$str_method('scankey', $it);
+            $this->assertTrue(strpos($this->redis->getLastError(), 'WRONGTYPE') === 0);
+        }
     }
 
     //
@@ -6937,6 +7078,11 @@ class Redis_Test extends TestSuite
 
         $this->assertTrue($this->redis->copy('key', 'key2', ['replace' => true]));
         $this->assertEquals('bar', $this->redis->get('key2'));
+    }
+
+    /* Make sure we handle a bad option value gracefully */
+    public function testBadOptionValue() {
+        $this->assertFalse(@$this->redis->setOption(pow(2, 32), false));
     }
 
     public  function testSession_regenerateSessionId_noLock_noDestroy() {

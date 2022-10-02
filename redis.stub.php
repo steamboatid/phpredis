@@ -42,7 +42,7 @@ class Redis {
     public function bgrewriteaof(): bool;
 
     /** @return int|Redis */
-    public function bitcount(string $key, int $start = 0, int $end = -1);
+    public function bitcount(string $key, int $start = 0, int $end = -1, bool $bybit = false);
 
     /**
      * @return int|Redis
@@ -52,9 +52,9 @@ class Redis {
     /** @return int|Redis */
     public function bitpos(string $key, int $bit, int $start = 0, int $end = -1);
 
-    public function blPop(string|array $key, string|int $timeout_or_key, mixed ...$extra_args): array;
+    public function blPop(string|array $key, string|float|int $timeout_or_key, mixed ...$extra_args): array;
 
-    public function brPop(string|array $key, string|int $timeout_or_key, mixed ...$extra_args): array;
+    public function brPop(string|array $key, string|float|int $timeout_or_key, mixed ...$extra_args): array;
 
     public function brpoplpush(string $src, string $dst, int $timeout): string;
 
@@ -70,7 +70,7 @@ class Redis {
 
     public function command(string $opt = null, string|array $arg): mixed;
 
-    public function config(string $operation, string $key, mixed $value = null): mixed;
+    public function config(string $operation, ?string $key = NULL, mixed $value = null): mixed;
 
     public function connect(string $host, int $port = 6379, float $timeout = 0, string $persistent_id = null, int $retry_interval = 0, float $read_timeout = 0, array $context = null): bool;
 
@@ -173,6 +173,8 @@ class Redis {
 	/** @return string|Redis */
     public function getRange(string $key, int $start, int $end);
 
+    public function lcs(string $key1, string $key2, ?array $options = NULL): Redis|string|array|int|false;
+
     public function getReadTimeout(): int;
 
 	/** @return string|Redis */
@@ -241,7 +243,7 @@ class Redis {
 
     public function lPop(string $key, int $count = 0): bool|string|array;
 
-    public function lPos(string $key, mixed $value, array $options = null): bool|int|array;
+    public function lPos(string $key, mixed $value, array $options = null): null|bool|int|array;
 
     /**
      * @param mixed $elements
@@ -362,6 +364,8 @@ public function persist(string $key): bool;
     public function sDiffStore(string $dst, string $key, string ...$other_keys): int;
 
     public function sInter(string $key, string ...$other_keys): array;
+
+    public function sintercard(array $keys, int $limit = -1): Redis|int|false;
 
     public function sInterStore(string $dst, string $key, string ...$other_keys): int;
 
@@ -547,6 +551,8 @@ public function persist(string $key): bool;
     public function zdiffstore(string $dst, array $keys, array $options = null): int;
 
     public function zinter(array $keys, array $weights = null, array $options = null): array;
+
+    public function zintercard(array $keys, int $limit = -1): Redis|int|false;
 
     public function zinterstore(string $dst, array $keys, array $weights = null, string $aggregate = null): int;
 

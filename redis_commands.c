@@ -52,10 +52,18 @@ typedef struct geoOptions {
     int withdist;
     int withhash;
     long count;
+    zend_bool any;
     geoSortType sort;
     geoStoreType store;
     zend_string *key;
 } geoOptions;
+
+typedef struct redisLcsOptions {
+    zend_bool len;
+    zend_bool idx;
+    zend_long minmatchlen;
+    zend_bool withmatchlen;
+} redisLcsOptions;
 
 /* Local passthrough macro for command construction.  Given that these methods
  * are generic (so they work whether the caller is Redis or RedisCluster) we
@@ -840,6 +848,63 @@ static int redis_cmd_append_sstr_score(smart_string *dst, zval *score) {
     return FAILURE;
 }
 
+int redis_intercard_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
+                        char *kw, char **cmd, int *cmd_len, short *slot,
+                        void **ctx)
+{
+    smart_string cmdstr = {0};
+    zend_long limit = -1;
+    HashTable *keys;
+    zend_string *key;
+    zval *zv;
+
+    ZEND_PARSE_PARAMETERS_START(1, 2)
+        Z_PARAM_ARRAY_HT(keys)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_LONG(limit)
+    ZEND_PARSE_PARAMETERS_END_EX(return FAILURE);
+
+    if (zend_hash_num_elements(keys) == 0) {
+        php_error_docref(NULL, E_WARNING, "Must pass at least one key");
+        return FAILURE;
+    } else if (ZEND_NUM_ARGS() == 2 && limit < 0) {
+        php_error_docref(NULL, E_WARNING, "LIMIT cannot be negative");
+        return FAILURE;
+    }
+
+    redis_cmd_init_sstr(&cmdstr, 1 + zend_hash_num_elements(keys) + (limit > 0 ? 2 : 0), kw, strlen(kw));
+    redis_cmd_append_sstr_long(&cmdstr, zend_hash_num_elements(keys));
+
+    if (slot) *slot = -1;
+
+    ZEND_HASH_FOREACH_VAL(keys, zv) {
+        key = redis_key_prefix_zval(redis_sock, zv);
+
+        if (slot) {
+            if (*slot == -1) {
+                *slot = cluster_hash_key_zstr(key);
+            } else if (*slot != cluster_hash_key_zstr(key)) {
+                php_error_docref(NULL, E_WARNING, "All keys don't hash to the same slot");
+                efree(cmdstr.c);
+                zend_string_release(key);
+                return FAILURE;
+            }
+        }
+
+        redis_cmd_append_sstr_zstr(&cmdstr, key);
+        zend_string_release(key);
+    } ZEND_HASH_FOREACH_END();
+
+    if (limit > 0) {
+        REDIS_CMD_APPEND_SSTR_STATIC(&cmdstr, "LIMIT");
+        redis_cmd_append_sstr_long(&cmdstr, limit);
+    }
+
+    *cmd = cmdstr.c;
+    *cmd_len = cmdstr.len;
+    return SUCCESS;
+}
+
 int
 redis_zinterunion_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
                       char *kw, char **cmd, int *cmd_len, short *slot,
@@ -1473,14 +1538,13 @@ static int gen_varkey_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
                           char *kw, int kw_len, int min_argc, int has_timeout,
                           char **cmd, int *cmd_len, short *slot)
 {
-    zval *z_args, *z_ele;
+    zval *z_args, *z_ele, ztimeout = {0};
     HashTable *ht_arr;
     char *key;
     int key_free, i, tail;
     size_t key_len;
     int single_array = 0, argc = ZEND_NUM_ARGS();
     smart_string cmdstr = {0};
-    long timeout = 0;
     short kslot = -1;
     zend_string *zstr;
 
@@ -1501,8 +1565,9 @@ static int gen_varkey_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
         single_array = argc==1 && Z_TYPE(z_args[0]) == IS_ARRAY;
     } else {
         single_array = argc==2 && Z_TYPE(z_args[0]) == IS_ARRAY &&
-            Z_TYPE(z_args[1]) == IS_LONG;
-        timeout = Z_LVAL(z_args[1]);
+            (Z_TYPE(z_args[1]) == IS_LONG || Z_TYPE(z_args[1]) == IS_DOUBLE);
+        if (single_array)
+            ZVAL_COPY_VALUE(&ztimeout, &z_args[1]);
     }
 
     // If we're running a single array, rework args
@@ -1545,17 +1610,22 @@ static int gen_varkey_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
             zend_string_release(zstr);
             if (key_free) efree(key);
         } ZEND_HASH_FOREACH_END();
-        if (has_timeout) {
-            redis_cmd_append_sstr_long(&cmdstr, timeout);
+        if (Z_TYPE(ztimeout) == IS_LONG) {
+            redis_cmd_append_sstr_long(&cmdstr, Z_LVAL(ztimeout));
+        } else if (Z_TYPE(ztimeout) == IS_DOUBLE) {
+            redis_cmd_append_sstr_dbl(&cmdstr, Z_DVAL(ztimeout));
         }
     } else {
-        if (has_timeout && Z_TYPE(z_args[argc-1])!=IS_LONG) {
-            php_error_docref(NULL, E_ERROR,
-                "Timeout value must be a LONG");
-            efree(z_args);
-            return FAILURE;
+        if (has_timeout) {
+            zend_uchar type = Z_TYPE(z_args[argc - 1]);
+            if (type == IS_LONG || type == IS_DOUBLE) {
+                ZVAL_COPY_VALUE(&ztimeout, &z_args[argc - 1]);
+            } else {
+                php_error_docref(NULL, E_ERROR, "Timeout value must be a long or double");
+                efree(z_args);
+                return FAILURE;
+            }
         }
-
         tail = has_timeout ? argc-1 : argc;
         for(i = 0; i < tail; i++) {
             zstr = zval_get_string(&z_args[i]);
@@ -1583,7 +1653,10 @@ static int gen_varkey_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
             zend_string_release(zstr);
             if (key_free) efree(key);
         }
-        if (has_timeout) {
+
+        if (Z_TYPE(ztimeout) == IS_DOUBLE) {
+            redis_cmd_append_sstr_dbl(&cmdstr, Z_DVAL(z_args[tail]));
+        } else if (Z_TYPE(ztimeout) == IS_LONG) {
             redis_cmd_append_sstr_long(&cmdstr, Z_LVAL(z_args[tail]));
         }
 
@@ -2169,6 +2242,102 @@ redis_hstrlen_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
     return SUCCESS;
 }
 
+void redis_get_lcs_options(redisLcsOptions *dst, HashTable *ht) {
+    zend_string *key;
+    zval *zv;
+
+    ZEND_ASSERT(dst != NULL);
+
+    memset(dst, 0, sizeof(*dst));
+
+    if (ht == NULL)
+        return;
+
+    ZEND_HASH_FOREACH_STR_KEY_VAL(ht, key, zv) {
+        if (key) {
+            if (zend_string_equals_literal_ci(key, "LEN")) {
+                dst->idx = 0;
+                dst->len = zval_is_true(zv);
+            } else if (zend_string_equals_literal_ci(key, "IDX")) {
+                dst->len = 0;
+                dst->idx = zval_is_true(zv);
+            } else if (zend_string_equals_literal_ci(key, "MINMATCHLEN")) {
+                dst->minmatchlen = zval_get_long(zv);
+            } else if (zend_string_equals_literal_ci(key, "WITHMATCHLEN")) {
+                dst->withmatchlen = zval_is_true(zv);
+            } else {
+                php_error_docref(NULL, E_WARNING, "Unknown LCS option '%s'", ZSTR_VAL(key));
+            }
+        } else if (Z_TYPE_P(zv) == IS_STRING) {
+            if (zend_string_equals_literal_ci(Z_STR_P(zv), "LEN")) {
+                dst->idx = 0;
+                dst->len = 1;
+            } else if (zend_string_equals_literal_ci(Z_STR_P(zv), "IDX")) {
+                dst->idx = 1;
+                dst->len = 0;
+            } else if (zend_string_equals_literal_ci(Z_STR_P(zv), "WITHMATCHLEN")) {
+                dst->withmatchlen = 1;
+            }
+        }
+    } ZEND_HASH_FOREACH_END();
+}
+
+/* LCS */
+int redis_lcs_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
+                  char **cmd, int *cmd_len, short *slot, void **ctx)
+{
+    zend_string *key1 = NULL, *key2 = NULL;
+    smart_string cmdstr = {0};
+    HashTable *ht = NULL;
+    redisLcsOptions opt;
+    int argc;
+
+    ZEND_PARSE_PARAMETERS_START(2, 3)
+        Z_PARAM_STR(key1)
+        Z_PARAM_STR(key2)
+        Z_PARAM_OPTIONAL
+        Z_PARAM_ARRAY_HT_OR_NULL(ht)
+    ZEND_PARSE_PARAMETERS_END_EX(return FAILURE);
+
+    key1 = redis_key_prefix_zstr(redis_sock, key1);
+    key2 = redis_key_prefix_zstr(redis_sock, key2);
+
+    if (slot) {
+        *slot = cluster_hash_key_zstr(key1);
+        if (*slot != cluster_hash_key_zstr(key2)) {
+            php_error_docref(NULL, E_WARNING, "Warning, not all keys hash to the same slot!");
+            zend_string_release(key1);
+            zend_string_release(key2);
+            return FAILURE;
+        }
+    }
+
+    redis_get_lcs_options(&opt, ht);
+
+    argc = 2 + !!opt.idx + !!opt.len + !!opt.withmatchlen + (opt.minmatchlen ? 2 : 0);
+    REDIS_CMD_INIT_SSTR_STATIC(&cmdstr, argc, "LCS");
+
+    redis_cmd_append_sstr_zstr(&cmdstr, key1);
+    redis_cmd_append_sstr_zstr(&cmdstr, key2);
+
+    REDIS_CMD_APPEND_SSTR_OPT_STATIC(&cmdstr, opt.idx, "IDX");
+    REDIS_CMD_APPEND_SSTR_OPT_STATIC(&cmdstr, opt.len, "LEN");
+    REDIS_CMD_APPEND_SSTR_OPT_STATIC(&cmdstr, opt.withmatchlen, "WITHMATCHLEN");
+
+    if (opt.minmatchlen) {
+        REDIS_CMD_APPEND_SSTR_STATIC(&cmdstr, "MINMATCHLEN");
+        redis_cmd_append_sstr_long(&cmdstr, opt.minmatchlen);
+    }
+
+    zend_string_release(key1);
+    zend_string_release(key2);
+
+    *cmd = cmdstr.c;
+    *cmd_len = cmdstr.len;
+    return SUCCESS;
+}
+
+
 /* BITPOS */
 int redis_bitpos_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
                      char **cmd, int *cmd_len, short *slot, void **ctx)
@@ -2280,15 +2449,21 @@ int redis_bitcount_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
     char *key;
     size_t key_len;
     zend_long start = 0, end = -1;
+    zend_bool isbit = 0;
 
-    if (zend_parse_parameters(ZEND_NUM_ARGS(), "s|ll", &key, &key_len,
-                             &start, &end) == FAILURE)
+    if (zend_parse_parameters(ZEND_NUM_ARGS(), "s|llb", &key, &key_len,
+                             &start, &end, &isbit) == FAILURE)
     {
         return FAILURE;
     }
 
-    *cmd_len = REDIS_CMD_SPPRINTF(cmd, "BITCOUNT", "kdd", key, key_len,
-                                 (int)start, (int)end);
+    if (isbit) {
+        *cmd_len = REDIS_CMD_SPPRINTF(cmd, "BITCOUNT", "kdds", key, key_len,
+                                     (int)start, (int)end, "BIT", 3);
+    } else {
+        *cmd_len = REDIS_CMD_SPPRINTF(cmd, "BITCOUNT", "kdd", key, key_len,
+                                     (int)start, (int)end);
+    }
 
     return SUCCESS;
 }
@@ -3388,10 +3563,44 @@ geoStoreType get_georadius_store_type(zend_string *key) {
     return STORE_NONE;
 }
 
+/* Helper function to get COUNT and possible ANY flag which is passable to
+ * both GEORADIUS and GEOSEARCH */
+static int get_georadius_count_options(zval *optval, geoOptions *opts) {
+    zval *z_tmp;
+
+    /* Short circuit on bad options */
+    if (Z_TYPE_P(optval) != IS_ARRAY && Z_TYPE_P(optval) != IS_LONG)
+        goto error;
+
+    if (Z_TYPE_P(optval) == IS_ARRAY) {
+        z_tmp = zend_hash_index_find(Z_ARRVAL_P(optval), 0);
+        if (z_tmp) {
+            if (Z_TYPE_P(z_tmp) != IS_LONG || Z_LVAL_P(z_tmp) <= 0)
+                goto error;
+            opts->count = Z_LVAL_P(z_tmp);
+        }
+
+        z_tmp = zend_hash_index_find(Z_ARRVAL_P(optval), 1);
+        if (z_tmp) {
+            opts->any = zval_is_true(z_tmp);
+        }
+    } else {
+        if (Z_LVAL_P(optval) <= 0)
+            goto error;
+        opts->count = Z_LVAL_P(optval);
+    }
+
+    return SUCCESS;
+
+error:
+    php_error_docref(NULL, E_WARNING, "Invalid COUNT value");
+    return FAILURE;
+}
+
 /* Helper function to extract optional arguments for GEORADIUS and GEORADIUSBYMEMBER */
 static int get_georadius_opts(HashTable *ht, geoOptions *opts) {
-    char *optstr;
     zend_string *zkey;
+    char *optstr;
     zval *optval;
 
     /* Iterate over our argument array, collating which ones we have */
@@ -3400,16 +3609,11 @@ static int get_georadius_opts(HashTable *ht, geoOptions *opts) {
 
         /* If the key is numeric it's a non value option */
         if (zkey) {
-            if (ZSTR_LEN(zkey) == 5 && !strcasecmp(ZSTR_VAL(zkey), "count")) {
-                if (Z_TYPE_P(optval) != IS_LONG || Z_LVAL_P(optval) <= 0) {
-                    php_error_docref(NULL, E_WARNING,
-                            "COUNT must be an integer > 0!");
+            if (zend_string_equals_literal_ci(zkey, "COUNT")) {
+                if (get_georadius_count_options(optval, opts) == FAILURE) {
                     if (opts->key) zend_string_release(opts->key);
                     return FAILURE;
                 }
-
-                /* Set our count */
-                opts->count = Z_LVAL_P(optval);
             } else if (opts->store == STORE_NONE) {
                 opts->store = get_georadius_store_type(zkey);
                 if (opts->store != STORE_NONE) {
@@ -3475,6 +3679,9 @@ void append_georadius_opts(RedisSock *redis_sock, smart_string *str, short *slot
     if (opt->count) {
         REDIS_CMD_APPEND_SSTR_STATIC(str, "COUNT");
         redis_cmd_append_sstr_long(str, opt->count);
+        if (opt->any) {
+            REDIS_CMD_APPEND_SSTR_STATIC(str, "ANY");
+        }
     }
 
     /* Append store options if we've got them */
@@ -3529,7 +3736,7 @@ int redis_georadius_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
 
     /* Increment argc depending on options */
     argc += gopts.withcoord + gopts.withdist + gopts.withhash +
-            (gopts.sort != SORT_NONE) + (gopts.count ? 2 : 0) +
+            (gopts.sort != SORT_NONE) + (gopts.count ? 2 + gopts.any : 0) +
             (gopts.store != STORE_NONE ? 2 : 0);
 
     /* Begin construction of our command */
@@ -3598,7 +3805,7 @@ int redis_georadiusbymember_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_s
 
     /* Increment argc based on options */
     argc += gopts.withcoord + gopts.withdist + gopts.withhash +
-            (gopts.sort != SORT_NONE) + (gopts.count ? 2 : 0) +
+            (gopts.sort != SORT_NONE) + (gopts.count ? 2 + gopts.any : 0) +
             (gopts.store != STORE_NONE ? 2 : 0);
 
     /* Begin command construction*/
@@ -3645,7 +3852,7 @@ redis_geosearch_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
     geoOptions gopts = {0};
     smart_string cmdstr = {0};
     zval *position, *shape, *opts = NULL, *z_ele;
-    zend_string *zkey;
+    zend_string *zkey, *zstr;
 
     if (zend_parse_parameters(ZEND_NUM_ARGS(), "szzs|a",
                               &key, &keylen, &position, &shape,
@@ -3676,24 +3883,21 @@ redis_geosearch_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
     if (opts != NULL) {
         ZEND_HASH_FOREACH_STR_KEY_VAL(Z_ARRVAL_P(opts), zkey, z_ele) {
             ZVAL_DEREF(z_ele);
-            if (zkey != NULL) {
-                if (zend_string_equals_literal_ci(zkey, "COUNT")) {
-                    if (Z_TYPE_P(z_ele) != IS_LONG || Z_LVAL_P(z_ele) <= 0) {
-                        php_error_docref(NULL, E_WARNING, "COUNT must be an integer > 0!");
-                        return FAILURE;
-                    }
-                    gopts.count = Z_LVAL_P(z_ele);
+            if (zkey != NULL && zend_string_equals_literal_ci(zkey, "COUNT")) {
+                if (get_georadius_count_options(z_ele, &gopts) == FAILURE) {
+                    return FAILURE;
                 }
             } else if (Z_TYPE_P(z_ele) == IS_STRING) {
-                if (!strcasecmp(Z_STRVAL_P(z_ele), "WITHCOORD")) {
+                zstr = Z_STR_P(z_ele);
+                if (zend_string_equals_literal_ci(zstr, "WITHCOORD")) {
                     gopts.withcoord = 1;
-                } else if (!strcasecmp(Z_STRVAL_P(z_ele), "WITHDIST")) {
+                } else if (zend_string_equals_literal_ci(zstr, "WITHDIST")) {
                     gopts.withdist = 1;
-                } else if (!strcasecmp(Z_STRVAL_P(z_ele), "WITHHASH")) {
+                } else if (zend_string_equals_literal_ci(zstr, "WITHHASH")) {
                     gopts.withhash = 1;
-                } else if (!strcasecmp(Z_STRVAL_P(z_ele), "ASC")) {
+                } else if (zend_string_equals_literal_ci(zstr, "ASC")) {
                     gopts.sort = SORT_ASC;
-                } else if (!strcasecmp(Z_STRVAL_P(z_ele), "DESC")) {
+                } else if (zend_string_equals_literal_ci(zstr, "DESC")) {
                     gopts.sort = SORT_DESC;
                 }
             }
@@ -3702,7 +3906,7 @@ redis_geosearch_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
 
     /* Increment argc based on options */
     argc += gopts.withcoord + gopts.withdist + gopts.withhash
-         + (gopts.sort != SORT_NONE) + (gopts.count ? 2 : 0);
+         + (gopts.sort != SORT_NONE) + (gopts.count ? 2 + gopts.any : 0);
 
     REDIS_CMD_INIT_SSTR_STATIC(&cmdstr, argc, "GEOSEARCH");
     redis_cmd_append_sstr_key(&cmdstr, key, keylen, redis_sock, slot);
@@ -3746,6 +3950,9 @@ redis_geosearch_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
     if (gopts.count) {
         REDIS_CMD_APPEND_SSTR_STATIC(&cmdstr, "COUNT");
         redis_cmd_append_sstr_long(&cmdstr, gopts.count);
+        if (gopts.any) {
+            REDIS_CMD_APPEND_SSTR_STATIC(&cmdstr, "ANY");
+        }
     }
 
     if ((argc = gopts.withcoord + gopts.withdist + gopts.withhash) > 0) {
@@ -5532,7 +5739,9 @@ void redis_setoption_handler(INTERNAL_FUNCTION_PARAMETERS,
                 RETURN_TRUE;
             }
             break;
-        EMPTY_SWITCH_DEFAULT_CASE()
+        default:
+            php_error_docref(NULL, E_WARNING, "Unknown option '" ZEND_LONG_FMT "'", option);
+            break;
     }
     RETURN_FALSE;
 }
