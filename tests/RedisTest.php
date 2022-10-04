@@ -605,6 +605,21 @@ class Redis_Test extends TestSuite
         $this->assertTrue($success);
     }
 
+    public function testExpiretime() {
+        if(version_compare($this->version, "7.0.0") < 0) {
+            $this->markTestSkipped();
+        }
+
+        $now = time();
+
+        $this->assertTrue($this->redis->set('key1', 'value'));
+        $this->assertTrue($this->redis->expireat('key1', $now + 10));
+        $this->assertEquals($now + 10, $this->redis->expiretime('key1'));
+        $this->assertEquals(1000 * ($now + 10), $this->redis->pexpiretime('key1'));
+
+        $this->redis->del('key1');
+    }
+
     public function testSetEx() {
 
         $this->redis->del('key');
@@ -3045,7 +3060,7 @@ class Redis_Test extends TestSuite
         $this->redis->set('key', 'value');
         $this->assertTrue($this->redis->object('encoding', 'key') === $str_small_encoding);
         $this->assertTrue($this->redis->object('refcount', 'key') === 1);
-        $this->assertTrue($this->redis->object('idletime', 'key') === 0);
+        $this->assertTrue(is_numeric($this->redis->object('idletime', 'key')));
 
         $this->redis->del('key');
         $this->redis->lpush('key', 'value');
@@ -3056,20 +3071,20 @@ class Redis_Test extends TestSuite
         $this->assertTrue($str_encoding === "ziplist" || $str_encoding === 'quicklist');
 
         $this->assertTrue($this->redis->object('refcount', 'key') === 1);
-        $this->assertTrue($this->redis->object('idletime', 'key') === 0);
+        $this->assertTrue(is_numeric($this->redis->object('idletime', 'key')));
 
         $this->redis->del('key');
         $this->redis->sadd('key', 'value');
         $this->assertTrue($this->redis->object('encoding', 'key') === "hashtable");
         $this->assertTrue($this->redis->object('refcount', 'key') === 1);
-        $this->assertTrue($this->redis->object('idletime', 'key') === 0);
+        $this->assertTrue(is_numeric($this->redis->object('idletime', 'key')));
 
         $this->redis->del('key');
         $this->redis->sadd('key', 42);
         $this->redis->sadd('key', 1729);
         $this->assertTrue($this->redis->object('encoding', 'key') === "intset");
         $this->assertTrue($this->redis->object('refcount', 'key') === 1);
-        $this->assertTrue($this->redis->object('idletime', 'key') === 0);
+        $this->assertTrue(is_numeric($this->redis->object('idletime', 'key')));
 
         $this->redis->del('key');
         $this->redis->lpush('key', str_repeat('A', pow(10,6))); // 1M elements, too big for a ziplist.
@@ -3078,7 +3093,7 @@ class Redis_Test extends TestSuite
         $this->assertTrue($str_encoding === "linkedlist" || $str_encoding == "quicklist");
 
         $this->assertTrue($this->redis->object('refcount', 'key') === 1);
-        $this->assertTrue($this->redis->object('idletime', 'key') === 0);
+        $this->assertTrue(is_numeric($this->redis->object('idletime', 'key')));
     }
 
     public function testMultiExec() {
