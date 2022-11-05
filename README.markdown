@@ -233,7 +233,7 @@ _**Description**_: Connects to a Redis instance.
 
 ##### *Parameters*
 
-*host*: string. can be a host, or the path to a unix domain socket. Starting from version 5.0.0 it is possible to specify schema 
+*host*: string. can be a host, or the path to a unix domain socket. Starting from version 5.0.0 it is possible to specify schema  
 *port*: int, optional  
 *timeout*: float, value in seconds (optional, default is 0 meaning it will use default_socket_timeout)  
 *reserved*: should be '' if retry_interval is specified  
