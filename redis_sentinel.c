@@ -47,12 +47,12 @@ PHP_METHOD(RedisSentinel, __construct)
     zend_long port = 26379, retry_interval = 0;
     redis_sentinel_object *obj;
     zend_string *host;
-    zval *auth = NULL, *zv = NULL;
+    zval *auth = NULL, *context = NULL, *zv = NULL;
 
-    if (zend_parse_parameters(ZEND_NUM_ARGS(), "S|ldz!ldz",
+    if (zend_parse_parameters(ZEND_NUM_ARGS(), "S|ldz!ldza",
                                 &host, &port, &timeout, &zv,
                                 &retry_interval, &read_timeout,
-                                &auth) == FAILURE) {
+                                &auth, &context) == FAILURE) {
         RETURN_FALSE;
     }
 
@@ -61,12 +61,12 @@ PHP_METHOD(RedisSentinel, __construct)
         RETURN_THROWS();
     }
 
-    if (timeout < 0L || timeout > INT_MAX) {
+    if (timeout > INT_MAX) {
         REDIS_VALUE_EXCEPTION("Invalid connect timeout");
         RETURN_THROWS();
     }
 
-    if (read_timeout < 0L || read_timeout > INT_MAX) {
+    if (read_timeout > INT_MAX) {
         REDIS_VALUE_EXCEPTION("Invalid read timeout");
         RETURN_THROWS();
     }
@@ -91,6 +91,9 @@ PHP_METHOD(RedisSentinel, __construct)
         timeout, read_timeout, persistent, persistent_id, retry_interval);
     if (auth) {
         redis_sock_set_auth_zval(obj->sock, auth);
+    }
+    if (context) {
+        redis_sock_set_stream_context(obj->sock, context);
     }
     obj->sock->sentinel = 1;
 }

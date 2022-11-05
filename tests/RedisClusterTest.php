@@ -49,6 +49,7 @@ class Redis_Cluster_Test extends Redis_Test {
     public function testTlsConnect() { return $this->markTestSkipped(); }
     public function testReset() { return $this->markTestSkipped(); }
     public function testInvalidAuthArgs() { return $this->markTestSkipped(); }
+    public function testScanErrors() { return $this->markTestSkipped(); }
 
     public function testlMove() { return $this->markTestSkipped(); }
     public function testlPos() { return $this->marktestSkipped(); }
@@ -63,6 +64,8 @@ class Redis_Cluster_Test extends Redis_Test {
     public function testGeoSearch() { return $this->marktestSkipped(); }
     public function testGeoSearchStore() { return $this->marktestSkipped(); }
     public function testHRandField() { return $this->marktestSkipped(); }
+    public function testConfig() { return $this->markTestSkipped(); }
+    public function testFlushDB() { return $this->markTestSkipped(); }
 
     /* Session locking feature is currently not supported in in context of Redis Cluster.
        The biggest issue for this is the distribution nature of Redis cluster */
@@ -284,7 +287,7 @@ class Redis_Cluster_Test extends Redis_Test {
 
         /* We should now have both prefixs' keys */
         foreach ($arr_keys as $str_prefix => $str_id) {
-            $this->assertTrue(in_array("${str_prefix}${str_id}", $arr_scan_keys));
+            $this->assertTrue(in_array("{$str_prefix}{$str_id}", $arr_scan_keys));
         }
     }
 
@@ -387,7 +390,7 @@ class Redis_Cluster_Test extends Redis_Test {
         // watch and unwatch
         $this->redis->watch('x');
         $r->incr('x'); // other instance
-        $this->redis->unwatch('x'); // cancel transaction watch
+        $this->redis->unwatch(); // cancel transaction watch
 
         // This should succeed as the watch has been cancelled
         $ret = $this->redis->multi()->get('x')->exec();
@@ -753,6 +756,15 @@ class Redis_Cluster_Test extends Redis_Test {
 
         $this->assertEquals($pong, $i);
         ini_set('redis.pconnect.pooling_enabled', $prev_value);
+    }
+
+    public function testTransferredBytes() {
+        $this->assertTrue($this->redis->ping(''));
+        $this->assertEquals(strlen("*1\r\n$4\r\nPING\r\n"), $this->redis->getTransferredBytes());
+        $this->assertEquals(['cluster_enabled' => 1], $this->redis->info('', 'cluster'));
+        $this->assertEquals(strlen("*2\r\n$4\r\nINFO\r\n$7\r\ncluster\r\n"), $this->redis->getTransferredBytes());
+        $this->assertEquals([true, true], $this->redis->multi()->ping('')->ping('')->exec());
+        $this->assertEquals(strlen("*1\r\n$5\r\nMULTI\r\n*1\r\n$4\r\nEXEC\r\n") + 2 * strlen("*2\r\n$4\r\nPING\r\n"), $this->redis->getTransferredBytes());
     }
 
     /**

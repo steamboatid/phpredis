@@ -31,11 +31,13 @@ int redis_build_raw_cmd(zval *z_args, int argc, char **cmd, int *cmd_len);
 /* Construct a script command */
 smart_string *redis_build_script_cmd(smart_string *cmd, int argc, zval *z_args);
 
-char *redis_variadic_str_cmd(char *kw, zval *argv, int argc, int *cmd_len);
-
 /* Redis command generics.  Many commands share common prototypes meaning that
  * we can write one function to handle all of them.  For example, there are
  * many COMMAND key value commands, or COMMAND key commands. */
+
+int redis_replicaof_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
+                        char *kw, char **cmd, int *cmd_len, short *slot,
+                        void **ctx);
 
 int redis_empty_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
     char *kw, char **cmd, int *cmd_len, short *slot, void **ctx);
@@ -106,12 +108,10 @@ typedef int (*zrange_cb)(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
                          char *,char**,int*,int*,short*,void**);
 
 int redis_zrange_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
-    char *kw, char **cmd, int *cmd_len, int *withscores, short *slot,
-    void **ctx);
+    char *kw, char **cmd, int *cmd_len, short *slot, void **ctx);
 
-int redis_zrangebyscore_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
-    char *kw, char **cmd, int *cmd_len, int *withscores, short *slot,
-    void **ctx);
+int redis_config_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
+    char **cmd, int *cmd_len, short *slot, void **ctx);
 
 int redis_zrandmember_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
     char **cmd, int *cmd_len, short *slot, void **ctx);
@@ -127,6 +127,25 @@ int redis_zdiffstore_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
 
 int redis_zinterunionstore_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
     char *kw, char **cmd, int *cmd_len, short *slot, void **ctx);
+
+int redis_intercard_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
+                        char *kw, char **cmd, int *cmd_len, short *slot,
+                        void **ctx);
+
+int redis_slowlog_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
+                      char **cmd, int *cmd_len, short *slot, void **ctx);
+
+int redis_lcs_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
+                  char **cmd, int *cmd_len, short *slot, void **ctx);
+
+int redis_mpop_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock, char *kw,
+                   char **cmd, int *cmd_len, short *slot, void **ctx);
+
+int redis_restore_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
+                      char **cmd, int *cmd_len, short *slot, void **ctx);
+
+int redis_pubsub_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
+    char **cmd, int *cmd_len, short *slot, void **ctx);
 
 int redis_subscribe_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
     char *kw, char **cmd, int *cmd_len, short *slot, void **ctx);
@@ -168,6 +187,9 @@ int redis_geosearchstore_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock
  * they don't share a signature with any other command, or because there is
  * specific processing we do (e.g. verifying subarguments) that make them
  * unique */
+
+int redis_acl_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
+    char **cmd, int *cmd_len, short *slot, void **ctx);
 
 int redis_set_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
     char **cmd, int *cmd_len, short *slot, void **ctx);
@@ -253,9 +275,6 @@ int redis_srandmember_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
 int redis_zincrby_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
     char **cmd, int *cmd_len, short *slot, void **ctx);
 
-int redis_sort_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
-    int *using_store, char **cmd, int *cmd_len, short *slot, void **ctx);
-
 int redis_hdel_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
     char **cmd, int *cmd_len, short *slot, void **ctx);
 
@@ -265,36 +284,6 @@ int redis_zadd_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
 int redis_object_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
     REDIS_REPLY_TYPE *rtype, char **cmd, int *cmd_len, short *slot,
     void **ctx);
-
-int redis_exists_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
-    char **cmd, int *cmd_len, short *slot, void **ctx);
-
-int redis_del_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
-    char **cmd, int *cmd_len, short *slot, void **ctx);
-
-int redis_unlink_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
-    char **cmd, int *cmd_len, short *slot, void **ctx);
-
-int redis_watch_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
-    char **cmd, int *cmd_len, short *slot, void **ctx);
-
-int redis_sinter_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
-    char **cmd, int *cmd_len, short *slot, void **ctx);
-
-int redis_sinterstore_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
-    char **cmd, int *cmd_len, short *slot, void **ctx);
-
-int redis_sunion_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
-    char **cmd, int *cmd_len, short *slot, void **ctx);
-
-int redis_sunionstore_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
-    char **cmd, int *cmd_len, short *slot, void **ctx);
-
-int redis_sdiff_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
-    char **cmd, int *cmd_len, short *slot, void **ctx);
-
-int redis_sdiffstore_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
-    char **cmd, int *cmd_len, short *slot, void **ctx);
 
 int redis_client_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
     char **cmd, int *cmd_len, short *slot, void **ctx);
@@ -307,6 +296,9 @@ int redis_copy_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
 
 int redis_fmt_scan_cmd(char **cmd, REDIS_SCAN_TYPE type, char *key, int key_len,
     long it, char *pat, int pat_len, long count);
+
+int redis_geoadd_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
+    char **cmd, int *cmd_len, short *slot, void **ctx);
 
 int redis_geodist_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
     char **cmd, int *cmd_len, short *slot, void **ctx);
@@ -342,12 +334,23 @@ int redis_xreadgroup_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
     char **cmd, int *cmd_len, short *slot, void **ctx);
 
 int redis_xtrim_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
-                    char **cmd, int *cmd_len, short *slot, void **ctx);
+    char **cmd, int *cmd_len, short *slot, void **ctx);
+
+int redis_expire_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
+    char *kw, char **cmd, int *cmd_len, short *slot,
+    void **ctx);
+
+int redis_varkey_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
+    char *kw, char **cmd, int *cmd_len, short *slot,
+    void **ctx);
 
 int redis_sentinel_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
     char *kw, char **cmd, int *cmd_len, short *slot, void **ctx);
 
 int redis_sentinel_str_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
+    char *kw, char **cmd, int *cmd_len, short *slot, void **ctx);
+
+int redis_sort_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
     char *kw, char **cmd, int *cmd_len, short *slot, void **ctx);
 
 /* Commands that don't communicate with Redis at all (such as getOption,

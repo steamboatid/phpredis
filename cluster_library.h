@@ -41,10 +41,6 @@
 #define SLOT_STREAM(c,s) (SLOT_SOCK(c,s)->stream)
 #define SLOT_SLAVES(c,s) (c->master[s]->slaves)
 
-/* Macros to access socket and stream for the node we're communicating with */
-#define CMD_SOCK(c) (c->cmd_sock)
-#define CMD_STREAM(c) (c->cmd_sock->stream)
-
 /* Compare redirection slot information with the passed node */
 #define CLUSTER_REDIR_CMP(c, sock) \
     (sock->port != c->redir_port || \
@@ -336,7 +332,7 @@ clusterReply *cluster_read_sock_resp(RedisSock *redis_sock,
 void cluster_free_reply(clusterReply *reply, int free_data);
 
 /* Cluster distribution helpers for WATCH */
-HashTable *cluster_dist_create();
+HashTable *cluster_dist_create(void);
 void cluster_dist_free(HashTable *ht);
 int cluster_dist_add_key(redisCluster *c, HashTable *ht, char *key,
     size_t key_len, clusterKeyVal **kv);
@@ -352,9 +348,10 @@ void cluster_multi_fini(clusterMultiCmd *mc);
 /* Hash a key to it's slot, using the Redis Cluster hash algorithm */
 unsigned short cluster_hash_key_zval(zval *key);
 unsigned short cluster_hash_key(const char *key, int len);
+unsigned short cluster_hash_key_zstr(zend_string *key);
 
 /* Validate and sanitize cluster construction args */
-zend_string** cluster_validate_args(double timeout, double read_timeout, 
+zend_string** cluster_validate_args(double timeout, double read_timeout,
     HashTable *seeds, uint32_t *nseeds, char **errstr);
 
 void free_seed_array(zend_string **seeds, uint32_t nseeds);
@@ -373,7 +370,6 @@ PHP_REDIS_API void cluster_disconnect(redisCluster *c, int force);
 PHP_REDIS_API int cluster_send_exec(redisCluster *c, short slot);
 PHP_REDIS_API int cluster_send_discard(redisCluster *c, short slot);
 PHP_REDIS_API int cluster_abort_exec(redisCluster *c);
-PHP_REDIS_API int cluster_reset_multi(redisCluster *c);
 
 PHP_REDIS_API short cluster_find_slot(redisCluster *c, const char *host,
     unsigned short port);
@@ -396,7 +392,7 @@ PHP_REDIS_API void cluster_init_cache(redisCluster *c, redisCachedCluster *rcc);
 
 PHP_REDIS_API char **cluster_sock_read_multibulk_reply(RedisSock *redis_sock, int *len);
 
-PHP_REDIS_API int cluster_cache_store(zend_string *hash, HashTable *nodes);
+PHP_REDIS_API void cluster_cache_store(zend_string *hash, HashTable *nodes);
 PHP_REDIS_API redisCachedCluster *cluster_cache_load(zend_string *hash);
 
 /*
@@ -434,6 +430,9 @@ PHP_REDIS_API void cluster_type_resp(INTERNAL_FUNCTION_PARAMETERS, redisCluster 
 PHP_REDIS_API void cluster_sub_resp(INTERNAL_FUNCTION_PARAMETERS, redisCluster *c,
     void *ctx);
 PHP_REDIS_API void cluster_unsub_resp(INTERNAL_FUNCTION_PARAMETERS, redisCluster *c,
+    void *ctx);
+
+PHP_REDIS_API void cluster_zrange_resp(INTERNAL_FUNCTION_PARAMETERS, redisCluster *c,
     void *ctx);
 
 PHP_REDIS_API void cluster_variant_resp(INTERNAL_FUNCTION_PARAMETERS,
@@ -493,6 +492,9 @@ PHP_REDIS_API void cluster_xrange_resp(INTERNAL_FUNCTION_PARAMETERS,
 PHP_REDIS_API void cluster_xclaim_resp(INTERNAL_FUNCTION_PARAMETERS,
     redisCluster *c, void *ctx);
 PHP_REDIS_API void cluster_xinfo_resp(INTERNAL_FUNCTION_PARAMETERS,
+    redisCluster *c, void *ctx);
+
+PHP_REDIS_API void cluster_mpop_resp(INTERNAL_FUNCTION_PARAMETERS,
     redisCluster *c, void *ctx);
 
 /* Custom ACL handlers */

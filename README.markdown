@@ -7,7 +7,7 @@
 The phpredis extension provides an API for communicating with the [Redis](http://redis.io/) key-value store. It is released under the [PHP License, version 3.01](http://www.php.net/license/3_01.txt).
 This code has been developed and maintained by Owlient from November 2009 to March 2011.
 
-You can send comments, patches, questions [here on github](https://github.com/phpredis/phpredis/issues), to n.favrefelix@gmail.com ([@yowgi](https://twitter.com/yowgi)), to michael.grunder@gmail.com ([@grumi78](https://twitter.com/grumi78)) or to p.yatsukhnenko@gmail.com ([@yatsukhnenko](https://twitter.com/yatsukhnenko)).
+You can send comments, patches, questions [here on github](https://github.com/phpredis/phpredis/issues), to michael.grunder@gmail.com ([@grumi78](https://twitter.com/grumi78)), p.yatsukhnenko@gmail.com ([@yatsukhnenko](https://twitter.com/yatsukhnenko)), or n.favrefelix@gmail.com ([@yowgi](https://twitter.com/yowgi)).
 
 ## Supporting the project
 PhpRedis will always be free and open source software, but if you or your company has found it useful please consider supporting the project.  Developing a large, complex, and performant library like PhpRedis takes a great deal of time and effort, and support would be appreciated! :heart:
@@ -75,7 +75,7 @@ session.save_path = "tcp://host1:6379?weight=1, tcp://host2:6379?weight=2&timeou
 
 * weight (integer): the weight of a host is used in comparison with the others in order to customize the session distribution on several hosts. If host A has twice the weight of host B, it will get twice the amount of sessions. In the example, *host1* stores 20% of all the sessions (1/(1+2+2)) while *host2* and *host3* each store 40% (2/(1+2+2)). The target host is determined once and for all at the start of the session, and doesn't change. The default weight is 1.
 * timeout (float): the connection timeout to a redis host, expressed in seconds. If the host is unreachable in that amount of time, the session storage will be unavailable for the client. The default timeout is very high (86400 seconds).
-* persistent (integer, should be 1 or 0): defines if a persistent connection should be used. **(experimental setting)**
+* persistent (integer, should be 1 or 0): defines if a persistent connection should be used.
 * prefix (string, defaults to "PHPREDIS_SESSION:"): used as a prefix to the Redis key in which the session is stored. The key is composed of the prefix followed by the session ID.
 * auth (string, or an array with one or two elements): used to authenticate with the server prior to sending commands.
 * database (integer): selects a different database.
@@ -235,11 +235,11 @@ _**Description**_: Connects to a Redis instance.
 
 *host*: string. can be a host, or the path to a unix domain socket. Starting from version 5.0.0 it is possible to specify schema 
 *port*: int, optional  
-*timeout*: float, value in seconds (optional, default is 0 meaning unlimited)  
-*reserved*: should be NULL if retry_interval is specified  
+*timeout*: float, value in seconds (optional, default is 0 meaning it will use default_socket_timeout)  
+*reserved*: should be '' if retry_interval is specified  
 *retry_interval*: int, value in milliseconds (optional)  
-*read_timeout*: float, value in seconds (optional, default is 0 meaning unlimited)
-*others*: array, with PhpRedis >= 5.3.0, it allows setting _auth_ and [_stream_](https://www.php.net/manual/en/context.ssl.php) configuration.
+*read_timeout*: float, value in seconds (optional, default is 0 meaning it will use default_socket_timeout)  
+*others*: array, with PhpRedis >= 5.3.0, it allows setting _auth_ and [_stream_](https://www.php.net/manual/en/context.ssl.php) configuration.  
 
 ##### *Return value*
 
@@ -254,10 +254,11 @@ $redis->connect('tls://127.0.0.1', 6379); // enable transport level security.
 $redis->connect('tls://127.0.0.1'); // enable transport level security, port 6379 by default.
 $redis->connect('127.0.0.1', 6379, 2.5); // 2.5 sec timeout.
 $redis->connect('/tmp/redis.sock'); // unix domain socket.
-$redis->connect('127.0.0.1', 6379, 1, NULL, 100); // 1 sec timeout, 100ms delay between reconnection attempts.
+$redis->connect('127.0.0.1', 6379, 1, '', 100); // 1 sec timeout, 100ms delay between reconnection attempts.
+$redis->connect('/tmp/redis.sock', 0, 1.5, NULL, 0, 1.5); // Unix socket with 1.5s timeouts (connect and read)
 
 /* With PhpRedis >= 5.3.0 you can specify authentication and stream information on connect */
-$redis->connect('127.0.0.1', 6379, 1, NULL, 0, 0, ['auth' => ['phpredis', 'phpredis']]);
+$redis->connect('127.0.0.1', 6379, 1, '', 0, 0, ['auth' => ['phpredis', 'phpredis']]);
 ~~~
 
 **Note:** `open` is an alias for `connect` and will be removed in future versions of phpredis.
@@ -280,12 +281,12 @@ persistent equivalents.
 
 ##### *Parameters*
 
-*host*: string. can be a host, or the path to a unix domain socket. Starting from version 5.0.0 it is possible to specify schema 
+*host*: string. can be a host, or the path to a unix domain socket. Starting from version 5.0.0 it is possible to specify schema  
 *port*: int, optional  
-*timeout*: float, value in seconds (optional, default is 0 meaning unlimited)  
+*timeout*: float, value in seconds (optional, default is 0 meaning it will use default_socket_timeout)  
 *persistent_id*: string. identity for the requested persistent connection  
 *retry_interval*: int, value in milliseconds (optional)  
-*read_timeout*: float, value in seconds (optional, default is 0 meaning unlimited)
+*read_timeout*: float, value in seconds (optional, default is 0 meaning it will use default_socket_timeout)  
 
 ##### *Return value*
 
@@ -512,7 +513,6 @@ $redis->setOption(Redis::OPT_BACKOFF_CAP, 750); // backoff time capped at 750ms
 1. [flushDb](#flushdb) - Remove all keys from the current database
 1. [info](#info) - Get information and statistics about the server
 1. [lastSave](#lastsave) - Get the timestamp of the last disk save
-1. [resetStat](#resetstat) - Reset the stats returned by [info](#info) method.
 1. [save](#save) - Synchronously save the dataset to disk (wait to complete)
 1. [slaveOf](#slaveof) - Make the server a slave of another instance, or promote it to master
 1. [time](#time) - Return the current server time
@@ -569,19 +569,22 @@ $redis->bgSave();
 -----
 _**Description**_: Get or Set the Redis server configuration parameters.
 
-##### *Parameters*
-*operation* (string) either `GET` or `SET`  
-*key* string for `SET`, glob-pattern for `GET`. See http://redis.io/commands/config-get for examples.  
-*value* optional string (only for `SET`)
+##### *Prototype*
+~~~php
+$redis->config(string $operation, string|array|null $key = NULL, ?string $value = NULL): mixed;
+~~~
 
 ##### *Return value*
-*Associative array* for `GET`, key -> value  
-*bool* for `SET`
+*Associative array* for `GET`, key(s) -> value(s)  
+*bool* for `SET`, `RESETSTAT`, and `REWRITE`
 
 ##### *Examples*
 ~~~php
 $redis->config("GET", "*max-*-entries*");
+$redis->config("SET", ['timeout', 'loglevel']);
 $redis->config("SET", "dir", "/var/run/redis/dumps/");
+$redis->config("SET", ['timeout' => 128, 'loglevel' => 'warning']);
+$redis->config('RESETSTAT');
 ~~~
 
 ### dbSize
@@ -619,11 +622,13 @@ $redis->flushAll();
 -----
 _**Description**_: Remove all keys from the current database.
 
-##### *Parameters*
-*async* (bool) requires server version 4.0.0 or greater
+##### *Prototype*
+~~~php
+$redis->flushdb(?bool $sync = NULL): Redis|bool;
+~~~
 
 ##### *Return value*
-*BOOL*: Always `TRUE`.
+*BOOL*:  This command returns true on success and false on failure.
 
 ##### *Example*
 ~~~php
@@ -677,30 +682,6 @@ None.
 ##### *Example*
 ~~~php
 $redis->lastSave();
-~~~
-
-### resetStat
------
-_**Description**_: Reset the stats returned by [info](#info) method.
-
-These are the counters that are reset:
-
-* Keyspace hits
-* Keyspace misses
-* Number of commands processed
-* Number of connections received
-* Number of expired keys
-
-
-##### *Parameters*
-None.
-
-##### *Return value*
-*BOOL*: `TRUE` in case of success, `FALSE` in case of failure.
-
-##### *Example*
-~~~php
-$redis->resetStat();
 ~~~
 
 ### save
@@ -1131,17 +1112,18 @@ $redis->get('x'); 	// → `FALSE`
 -----
 _**Description**_: Same as rename, but will not replace a key if the destination already exists. This is the same behaviour as setNx.
 
-### expire, setTimeout, pexpire
+### expire, pexpire
 -----
-_**Description**_: Sets an expiration date (a timeout) on an item. pexpire requires a TTL in milliseconds.
+_**Description**_: Sets an expiration on a key in either seconds or milliseconds.
 
-##### *Parameters*
-*Key*: key. The key that will disappear.
-
-*Integer*: ttl. The key's remaining Time To Live, in seconds.
+##### *Prototype*
+~~~php
+public function expire(string $key, int $seconds, ?string $mode = NULL): Redis|bool;
+public function pexpire(string $key, int $milliseconds, ?string $mode = NULL): Redis|bool;
+~~~
 
 ##### *Return value*
-*BOOL*: `TRUE` in case of success, `FALSE` in case of failure.
+*BOOL*: `TRUE` if an expiration was set, and `FALSE` on failure or if one was not set.  You can distinguish between an error and an expiration not being set by checking `getLastError()`.
 ##### *Example*
 ~~~php
 $redis->set('x', '42');
@@ -1154,22 +1136,23 @@ $redis->get('x'); 		// will return `FALSE`, as 'x' has expired.
 
 ### expireAt, pexpireAt
 -----
-_**Description**_: Sets an expiration date (a timestamp) on an item. pexpireAt requires a timestamp in milliseconds.
+_**Description**_: Seta specific timestamp for a key to expire in seconds or milliseconds.
 
-##### *Parameters*
-*Key*: key. The key that will disappear.
-
-*Integer*: Unix timestamp. The key's date of death, in seconds from Epoch time.
+##### *Prototype*
+~~~php
+public function expireat(string $key, int $unix_timestamp, ?string $mode = NULL): Redis|bool;
+public function pexpireat(string $key, int $unix_timestamp_millis, ?string $mode = NULL): Redis|bool;
+~~~
 
 ##### *Return value*
-*BOOL*: `TRUE` in case of success, `FALSE` in case of failure.
+*BOOL*: `TRUE` if an expiration was set and `FALSE` if one was not set or in the event on an error.  You can detect an actual error by checking `getLastError()`.
+
 ##### *Example*
 ~~~php
 $redis->set('x', '42');
-$now = time(NULL); // current timestamp
-$redis->expireAt('x', $now + 3);	// x will disappear in 3 seconds.
+$redis->expireAt('x', time(NULL) + 3); // x will disappear in 3 seconds.
 sleep(5);				// wait 5 seconds
-$redis->get('x'); 		// will return `FALSE`, as 'x' has expired.
+$redis->get('x'); 	// will return `FALSE`, as 'x' has expired.
 ~~~
 
 ### keys, getKeys
@@ -3776,8 +3759,8 @@ _**Description**_:  This command is used in order to create, destroy, or manage 
 
 ##### *Example*
 ~~~php
-$obj_redis->xGroup('CREATE', 'mystream', 'mygroup', 0);
-$obj_redis->xGroup('CREATE', 'mystream', 'mygroup2', 0, true); /* Create stream if non-existent. */
+$obj_redis->xGroup('CREATE', 'mystream', 'mygroup', '0');
+$obj_redis->xGroup('CREATE', 'mystream', 'mygroup2', '0', true); /* Create stream if non-existent. */
 $obj_redis->xGroup('DESTROY', 'mystream', 'mygroup');
 ~~~
 
