@@ -9,6 +9,9 @@ This code has been developed and maintained by Owlient from November 2009 to Mar
 
 You can send comments, patches, questions [here on github](https://github.com/phpredis/phpredis/issues), to michael.grunder@gmail.com ([@grumi78](https://twitter.com/grumi78)), p.yatsukhnenko@gmail.com ([@yatsukhnenko](https://twitter.com/yatsukhnenko)), or n.favrefelix@gmail.com ([@yowgi](https://twitter.com/yowgi)).
 
+## [API Documentation](https://phpredis.github.io/phpredis)
+These are a work in progress, but will eventually replace our **ONE README TO RULE THEM ALL** docs.  
+
 ## Supporting the project
 PhpRedis will always be free and open source software, but if you or your company has found it useful please consider supporting the project.  Developing a large, complex, and performant library like PhpRedis takes a great deal of time and effort, and support would be appreciated! :heart:
 
@@ -31,9 +34,9 @@ You can also make a one-time contribution with one of the links below.
 1. [Installing/Configuring](#installingconfiguring)
    * [Installation](#installation)
    * [PHP Session handler](#php-session-handler)
-   * [Distributed Redis Array](./arrays.markdown#readme)
-   * [Redis Cluster support](./cluster.markdown#readme)
-   * [Redis Sentinel support](./sentinel.markdown#readme)
+   * [Distributed Redis Array](./array.md#readme)
+   * [Redis Cluster support](./cluster.md#readme)
+   * [Redis Sentinel support](./sentinel.md#readme)
    * [Running the unit tests](#running-the-unit-tests)
 1. [Classes and methods](#classes-and-methods)
    * [Usage](#usage)
@@ -61,7 +64,7 @@ You can also make a one-time contribution with one of the links below.
 ## Installation
 
 For everything you should need to install PhpRedis on your system,
-see the [INSTALL.markdown](./INSTALL.markdown) page.
+see the [INSTALL.md](./INSTALL.md) page.
 
 ## PHP Session handler
 
@@ -100,18 +103,6 @@ redis.session.lock_wait_time = 50000
 ; Maximum number of times to retry (-1 means infinite). Defaults to: 100
 redis.session.lock_retries = 2000
 ~~~
-
-## Distributed Redis Array
-
-See [dedicated page](./arrays.markdown#readme).
-
-## Redis Cluster support
-
-See [dedicated page](./cluster.markdown#readme).
-
-## Redis Sentinel support
-
-See [dedicated page](./sentinel.markdown#readme).
 
 ## Running the unit tests
 
@@ -233,7 +224,7 @@ _**Description**_: Connects to a Redis instance.
 
 ##### *Parameters*
 
-*host*: string. can be a host, or the path to a unix domain socket. Starting from version 5.0.0 it is possible to specify schema 
+*host*: string. can be a host, or the path to a unix domain socket. Starting from version 5.0.0 it is possible to specify schema  
 *port*: int, optional  
 *timeout*: float, value in seconds (optional, default is 0 meaning it will use default_socket_timeout)  
 *reserved*: should be '' if retry_interval is specified  
@@ -1185,7 +1176,7 @@ _**Description**_:  Scan the keyspace for keys
 ##### *Return value*
 *Array, boolean*:  This function will return an array of keys or FALSE if Redis returned zero keys
 
-*Note*: SCAN is a "directed node" command in [RedisCluster](cluster.markdown#directed-node-commands)
+*Note*: SCAN is a "directed node" command in [RedisCluster](cluster.md#directed-node-commands)
 
 ##### *Example*
 ~~~php

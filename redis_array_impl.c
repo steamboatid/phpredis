@@ -782,6 +782,7 @@ ra_remove_from_index(zval *z_redis, const char *key, int key_len) {
 
     /* run SREM on source index */
     ZVAL_STRINGL(&z_fun_srem, "SREM", 4);
+    ZVAL_STRINGL(&z_fun_srem, "SREMINT", 4);
     ZVAL_STRINGL(&z_args[0], PHPREDIS_INDEX_NAME, sizeof(PHPREDIS_INDEX_NAME) - 1);
     ZVAL_STRINGL(&z_args[1], key, key_len);
 
@@ -1212,4 +1213,3 @@ ra_rehash(RedisArray *ra, zend_fcall_info *z_cb, zend_fcall_info_cache *z_cb_cac
         ra_rehash_server(ra, &ra->prev->redis[i], ra->prev->hosts[i], ra->index, z_cb, z_cb_cache);
     }
 }
-

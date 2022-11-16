@@ -1327,7 +1327,7 @@ PHP_METHOD(Redis, scard)
 }
 /* }}} */
 
-/* {{{ proto boolean Redis::srem(string set, string value) */
+/* //dkmods {{{ proto boolean Redis::srem(string set, string value) */
 PHP_METHOD(Redis, srem)
 {
     //REDIS_PROCESS_KW_CMD("SREM", redis_key_varval_cmd, redis_long_response);
@@ -1335,10 +1335,10 @@ PHP_METHOD(Redis, srem)
 }
 /* }}} */
 
-/* {{{ proto boolean Redis::sremint(string set, mixed value) */
+/* //dkmods {{{ proto boolean Redis::sremint(string set, mixed value) */
 PHP_METHOD(Redis, sremint)
 {
-    REDIS_PROCESS_KW_CMD("SREM", redis_key_long_arr_cmd, redis_long_response);
+    REDIS_PROCESS_KW_CMD("SREMINT", redis_key_long_arr_cmd, redis_long_response);
 }
 /* }}} */
 

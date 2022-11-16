@@ -1,6 +1,14 @@
+/.github
+/.idea
+/.vscode
+/docs/.cache
+.cquery
 *.deps
 *.libs
+*.o
+*.lo
 Makefile*
+configure*
 ac*.m4
 config.*
 *.o
@@ -22,6 +30,8 @@ idea/*
 tags
 .vscode/*
 compile_commands.json
+doctum.phar
+run-tests.php
 
 
 
