@@ -1842,6 +1842,7 @@ int redis_key_str_arr_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
  *
  * @param execute_data
  * @param return_value
+ * 
  * @param redis_sock
  * @param kw
  * @param cmd
@@ -1857,6 +1858,7 @@ int redis_key_long_arr_cmd(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock,
     return gen_key_arr_cmd(INTERNAL_FUNCTION_PARAM_PASSTHRU, redis_sock, kw,
         VAL_TYPE_LONGS, cmd, cmd_len, slot, ctx);
 }
+//dkmods
 
 /* Generic function that takes a variable number of keys, with an optional
  * timeout value.  This can handle various SUNION/SUNIONSTORE/BRPOP type
