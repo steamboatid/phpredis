@@ -153,8 +153,6 @@ redis_read_stream_messages(RedisSock *redis_sock, int count, zval *z_ret);
 PHP_REDIS_API int
 redis_read_stream_messages_multi(RedisSock *redis_sock, int count, zval *z_ret);
 PHP_REDIS_API int
-redis_read_xclaim_response(RedisSock *redis_sock, int count, zval *rv);
-PHP_REDIS_API int
 redis_read_xinfo_response(RedisSock *redis_sock, zval *z_ret, int elements);
 
 PHP_REDIS_API int
@@ -191,6 +189,7 @@ PHP_REDIS_API int redis_hrandfield_response(INTERNAL_FUNCTION_PARAMETERS, RedisS
 PHP_REDIS_API int redis_pop_response(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock, zval *z_tab, void *ctx);
 PHP_REDIS_API int redis_lpos_response(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock, zval *z_tab, void *ctx);
 PHP_REDIS_API int redis_client_response(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock, zval *z_tab, void *ctx);
+PHP_REDIS_API int redis_command_response(INTERNAL_FUNCTION_PARAMETERS, RedisSock *redis_sock, zval *z_tab, void *ctx);
 
 /* Helper methods to get configuration values from a HashTable. */
 
