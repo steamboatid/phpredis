@@ -1736,11 +1736,57 @@ PHP_METHOD(RedisCluster, clearlasterror) {
     RETURN_TRUE;
 }
 
+static void redisSumNodeBytes(redisClusterNode *node, zend_long *tx, zend_long *rx) {
+    struct redisClusterNode *slave;
+
+    *tx += node->sock->txBytes;
+    *rx += node->sock->rxBytes;
+
+    if (node->slaves) {
+        ZEND_HASH_FOREACH_PTR(node->slaves, slave) {
+            *tx += slave->sock->txBytes;
+            *rx += slave->sock->rxBytes;
+        } ZEND_HASH_FOREACH_END();
+    }
+}
+
+static void redisClearNodeBytes(redisClusterNode *node) {
+    struct redisClusterNode *slave;
+
+    node->sock->txBytes = 0;
+    node->sock->rxBytes = 0;
+
+    if (node->slaves) {
+        ZEND_HASH_FOREACH_PTR(node->slaves, slave) {
+            slave->sock->txBytes = 0;
+            slave->sock->rxBytes = 0;
+        } ZEND_HASH_FOREACH_END();
+    }
+}
+
 PHP_METHOD(RedisCluster, gettransferredbytes) {
     redisCluster *c = GET_CONTEXT();
-    RETURN_LONG(c->flags->txBytes);
+    zend_long rx = 0, tx = 0;
+    redisClusterNode *node;
+
+    ZEND_HASH_FOREACH_PTR(c->nodes, node) {
+        redisSumNodeBytes(node, &tx, &rx);
+    } ZEND_HASH_FOREACH_END();
+
+    array_init_size(return_value, 2);
+    add_next_index_long(return_value, tx);
+    add_next_index_long(return_value, rx);
 }
 /* }}} */
+
+PHP_METHOD(RedisCluster, cleartransferredbytes) {
+    redisCluster *c = GET_CONTEXT();
+    redisClusterNode *node;
+
+    ZEND_HASH_FOREACH_PTR(c->nodes, node) {
+        redisClearNodeBytes(node);
+    } ZEND_HASH_FOREACH_END();
+}
 
 /* {{{ proto long RedisCluster::getOption(long option */
 PHP_METHOD(RedisCluster, getoption) {
@@ -1860,6 +1906,7 @@ PHP_METHOD(RedisCluster, multi) {
     c->flags->mode = MULTI;
 
     c->flags->txBytes = 0;
+    c->flags->rxBytes = 0;
 
     /* Return our object so we can chain MULTI calls */
     RETVAL_ZVAL(getThis(), 1, 0);
@@ -3082,3 +3129,4 @@ PHP_METHOD(RedisCluster, command) {
 }
 
 /* vim: set tabstop=4 softtabstop=4 expandtab shiftwidth=4: */
+

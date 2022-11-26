@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: 2f2132e45b1d60011f8ef9298cb35b7ba2b247d5 */
+ * Stub hash: 9a900fefb0ccb36638768a9d08909c68fff26c10 */
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster___construct, 0, 0, 1)
 	ZEND_ARG_TYPE_INFO(0, name, IS_STRING, 1)
@@ -308,7 +308,9 @@ ZEND_BEGIN_ARG_WITH_RETURN_OBJ_TYPE_MASK_EX(arginfo_class_RedisCluster_getset, 0
 	ZEND_ARG_TYPE_INFO(0, value, IS_MIXED, 0)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_class_RedisCluster_gettransferredbytes, 0, 0, MAY_BE_LONG|MAY_BE_FALSE)
+#define arginfo_class_RedisCluster_gettransferredbytes arginfo_class_RedisCluster_exec
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_RedisCluster_cleartransferredbytes, 0, 0, IS_VOID, 0)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_WITH_RETURN_OBJ_TYPE_MASK_EX(arginfo_class_RedisCluster_hdel, 0, 2, RedisCluster, MAY_BE_LONG|MAY_BE_FALSE)
@@ -1031,6 +1033,7 @@ ZEND_METHOD(RedisCluster, getrange);
 ZEND_METHOD(RedisCluster, lcs);
 ZEND_METHOD(RedisCluster, getset);
 ZEND_METHOD(RedisCluster, gettransferredbytes);
+ZEND_METHOD(RedisCluster, cleartransferredbytes);
 ZEND_METHOD(RedisCluster, hdel);
 ZEND_METHOD(RedisCluster, hexists);
 ZEND_METHOD(RedisCluster, hget);
@@ -1242,6 +1245,7 @@ static const zend_function_entry class_RedisCluster_methods[] = {
 	ZEND_ME(RedisCluster, lcs, arginfo_class_RedisCluster_lcs, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, getset, arginfo_class_RedisCluster_getset, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, gettransferredbytes, arginfo_class_RedisCluster_gettransferredbytes, ZEND_ACC_PUBLIC)
+	ZEND_ME(RedisCluster, cleartransferredbytes, arginfo_class_RedisCluster_cleartransferredbytes, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, hdel, arginfo_class_RedisCluster_hdel, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, hexists, arginfo_class_RedisCluster_hexists, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, hget, arginfo_class_RedisCluster_hget, ZEND_ACC_PUBLIC)
@@ -1394,6 +1398,36 @@ static zend_class_entry *register_class_RedisCluster(void)
 
 	INIT_CLASS_ENTRY(ce, "RedisCluster", class_RedisCluster_methods);
 	class_entry = zend_register_internal_class_ex(&ce, NULL);
+
+	zval const_OPT_SLAVE_FAILOVER_value;
+	ZVAL_LONG(&const_OPT_SLAVE_FAILOVER_value, REDIS_OPT_FAILOVER);
+	zend_string *const_OPT_SLAVE_FAILOVER_name = zend_string_init_interned("OPT_SLAVE_FAILOVER", sizeof("OPT_SLAVE_FAILOVER") - 1, 1);
+	zend_declare_class_constant_ex(class_entry, const_OPT_SLAVE_FAILOVER_name, &const_OPT_SLAVE_FAILOVER_value, ZEND_ACC_PUBLIC, NULL);
+	zend_string_release(const_OPT_SLAVE_FAILOVER_name);
+
+	zval const_FAILOVER_NONE_value;
+	ZVAL_LONG(&const_FAILOVER_NONE_value, REDIS_FAILOVER_NONE);
+	zend_string *const_FAILOVER_NONE_name = zend_string_init_interned("FAILOVER_NONE", sizeof("FAILOVER_NONE") - 1, 1);
+	zend_declare_class_constant_ex(class_entry, const_FAILOVER_NONE_name, &const_FAILOVER_NONE_value, ZEND_ACC_PUBLIC, NULL);
+	zend_string_release(const_FAILOVER_NONE_name);
+
+	zval const_FAILOVER_ERROR_value;
+	ZVAL_LONG(&const_FAILOVER_ERROR_value, REDIS_FAILOVER_ERROR);
+	zend_string *const_FAILOVER_ERROR_name = zend_string_init_interned("FAILOVER_ERROR", sizeof("FAILOVER_ERROR") - 1, 1);
+	zend_declare_class_constant_ex(class_entry, const_FAILOVER_ERROR_name, &const_FAILOVER_ERROR_value, ZEND_ACC_PUBLIC, NULL);
+	zend_string_release(const_FAILOVER_ERROR_name);
+
+	zval const_FAILOVER_DISTRIBUTE_value;
+	ZVAL_LONG(&const_FAILOVER_DISTRIBUTE_value, REDIS_FAILOVER_DISTRIBUTE);
+	zend_string *const_FAILOVER_DISTRIBUTE_name = zend_string_init_interned("FAILOVER_DISTRIBUTE", sizeof("FAILOVER_DISTRIBUTE") - 1, 1);
+	zend_declare_class_constant_ex(class_entry, const_FAILOVER_DISTRIBUTE_name, &const_FAILOVER_DISTRIBUTE_value, ZEND_ACC_PUBLIC, NULL);
+	zend_string_release(const_FAILOVER_DISTRIBUTE_name);
+
+	zval const_FAILOVER_DISTRIBUTE_SLAVES_value;
+	ZVAL_LONG(&const_FAILOVER_DISTRIBUTE_SLAVES_value, REDIS_FAILOVER_DISTRIBUTE_SLAVES);
+	zend_string *const_FAILOVER_DISTRIBUTE_SLAVES_name = zend_string_init_interned("FAILOVER_DISTRIBUTE_SLAVES", sizeof("FAILOVER_DISTRIBUTE_SLAVES") - 1, 1);
+	zend_declare_class_constant_ex(class_entry, const_FAILOVER_DISTRIBUTE_SLAVES_name, &const_FAILOVER_DISTRIBUTE_SLAVES_value, ZEND_ACC_PUBLIC, NULL);
+	zend_string_release(const_FAILOVER_DISTRIBUTE_SLAVES_name);
 #if (PHP_VERSION_ID >= 80200)
 
 
