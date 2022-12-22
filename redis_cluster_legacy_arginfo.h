@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: 9a900fefb0ccb36638768a9d08909c68fff26c10 */
+ * Stub hash: eabecbc2e536faca2a9fcba3c99ad0aeba9721b4 */
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster___construct, 0, 0, 1)
 	ZEND_ARG_INFO(0, name)
@@ -87,6 +87,21 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster_brpoplpush, 0, 0, 3)
 	ZEND_ARG_INFO(0, timeout)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster_lmove, 0, 0, 4)
+	ZEND_ARG_INFO(0, src)
+	ZEND_ARG_INFO(0, dst)
+	ZEND_ARG_INFO(0, wherefrom)
+	ZEND_ARG_INFO(0, whereto)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster_blmove, 0, 0, 5)
+	ZEND_ARG_INFO(0, src)
+	ZEND_ARG_INFO(0, dst)
+	ZEND_ARG_INFO(0, wherefrom)
+	ZEND_ARG_INFO(0, whereto)
+	ZEND_ARG_INFO(0, timeout)
+ZEND_END_ARG_INFO()
+
 #define arginfo_class_RedisCluster_bzpopmax arginfo_class_RedisCluster_blpop
 
 #define arginfo_class_RedisCluster_bzpopmin arginfo_class_RedisCluster_blpop
@@ -135,6 +150,12 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster_config, 0, 0, 2)
 ZEND_END_ARG_INFO()
 
 #define arginfo_class_RedisCluster_dbsize arginfo_class_RedisCluster_bgrewriteaof
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster_copy, 0, 0, 2)
+	ZEND_ARG_INFO(0, src)
+	ZEND_ARG_INFO(0, dst)
+	ZEND_ARG_INFO(0, options)
+ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster_decr, 0, 0, 1)
 	ZEND_ARG_INFO(0, key)
@@ -248,6 +269,23 @@ ZEND_END_ARG_INFO()
 
 #define arginfo_class_RedisCluster_georadiusbymember_ro arginfo_class_RedisCluster_georadiusbymember
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster_geosearch, 0, 0, 4)
+	ZEND_ARG_INFO(0, key)
+	ZEND_ARG_INFO(0, position)
+	ZEND_ARG_INFO(0, shape)
+	ZEND_ARG_INFO(0, unit)
+	ZEND_ARG_INFO(0, options)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster_geosearchstore, 0, 0, 5)
+	ZEND_ARG_INFO(0, dst)
+	ZEND_ARG_INFO(0, src)
+	ZEND_ARG_INFO(0, position)
+	ZEND_ARG_INFO(0, shape)
+	ZEND_ARG_INFO(0, unit)
+	ZEND_ARG_INFO(0, options)
+ZEND_END_ARG_INFO()
+
 #define arginfo_class_RedisCluster_get arginfo_class_RedisCluster__prefix
 
 #define arginfo_class_RedisCluster_getbit arginfo_class_RedisCluster_append
@@ -318,6 +356,11 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster_hscan, 0, 0, 2)
 	ZEND_ARG_INFO(0, count)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster_hrandfield, 0, 0, 1)
+	ZEND_ARG_INFO(0, key)
+	ZEND_ARG_INFO(0, options)
+ZEND_END_ARG_INFO()
+
 #define arginfo_class_RedisCluster_hset arginfo_class_RedisCluster_hincrby
 
 #define arginfo_class_RedisCluster_hsetnx arginfo_class_RedisCluster_hincrby
@@ -365,6 +408,12 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster_lpop, 0, 0, 1)
 	ZEND_ARG_INFO(0, key)
 	ZEND_ARG_INFO(0, count)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster_lpos, 0, 0, 2)
+	ZEND_ARG_INFO(0, key)
+	ZEND_ARG_INFO(0, value)
+	ZEND_ARG_INFO(0, options)
 ZEND_END_ARG_INFO()
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster_lpush, 0, 0, 2)
@@ -530,11 +579,7 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster_sdiffstore, 0, 0, 2)
 	ZEND_ARG_VARIADIC_INFO(0, other_keys)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster_set, 0, 0, 2)
-	ZEND_ARG_INFO(0, key)
-	ZEND_ARG_INFO(0, value)
-	ZEND_ARG_INFO(0, options)
-ZEND_END_ARG_INFO()
+#define arginfo_class_RedisCluster_set arginfo_class_RedisCluster_lpos
 
 ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster_setbit, 0, 0, 3)
 	ZEND_ARG_INFO(0, key)
@@ -572,6 +617,8 @@ ZEND_END_ARG_INFO()
 
 #define arginfo_class_RedisCluster_sismember arginfo_class_RedisCluster_append
 
+#define arginfo_class_RedisCluster_smismember arginfo_class_RedisCluster_geohash
+
 #define arginfo_class_RedisCluster_slowlog arginfo_class_RedisCluster_script
 
 #define arginfo_class_RedisCluster_smembers arginfo_class_RedisCluster__prefix
@@ -582,19 +629,17 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster_smove, 0, 0, 3)
 	ZEND_ARG_INFO(0, member)
 ZEND_END_ARG_INFO()
 
-ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster_sort, 0, 0, 1)
-	ZEND_ARG_INFO(0, key)
-	ZEND_ARG_INFO(0, options)
-ZEND_END_ARG_INFO()
+#define arginfo_class_RedisCluster_sort arginfo_class_RedisCluster_hrandfield
 
-#define arginfo_class_RedisCluster_sort_ro arginfo_class_RedisCluster_sort
+#define arginfo_class_RedisCluster_sort_ro arginfo_class_RedisCluster_hrandfield
 
 #define arginfo_class_RedisCluster_spop arginfo_class_RedisCluster_lpop
 
 #define arginfo_class_RedisCluster_srandmember arginfo_class_RedisCluster_lpop
 
 #define arginfo_class_RedisCluster_srem arginfo_class_RedisCluster_lpush
-#define arginfo_class_RedisCluster_sremint arginfo_class_RedisCluster_lpush //dkmods
+//dkmods
+#define arginfo_class_RedisCluster_sremint arginfo_class_RedisCluster_lpush 
 
 #define arginfo_class_RedisCluster_sscan arginfo_class_RedisCluster_hscan
 
@@ -774,6 +819,8 @@ ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster_zrangestore, 0, 0, 4)
 	ZEND_ARG_INFO(0, options)
 ZEND_END_ARG_INFO()
 
+#define arginfo_class_RedisCluster_zrandmember arginfo_class_RedisCluster_hrandfield
+
 ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster_zrangebylex, 0, 0, 3)
 	ZEND_ARG_INFO(0, key)
 	ZEND_ARG_INFO(0, min)
@@ -811,7 +858,27 @@ ZEND_END_ARG_INFO()
 
 #define arginfo_class_RedisCluster_zscore arginfo_class_RedisCluster_hexists
 
+#define arginfo_class_RedisCluster_zmscore arginfo_class_RedisCluster_geohash
+
 #define arginfo_class_RedisCluster_zunionstore arginfo_class_RedisCluster_zinterstore
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster_zinter, 0, 0, 1)
+	ZEND_ARG_INFO(0, keys)
+	ZEND_ARG_INFO(0, weights)
+	ZEND_ARG_INFO(0, options)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster_zdiffstore, 0, 0, 2)
+	ZEND_ARG_INFO(0, dst)
+	ZEND_ARG_INFO(0, keys)
+ZEND_END_ARG_INFO()
+
+#define arginfo_class_RedisCluster_zunion arginfo_class_RedisCluster_zinter
+
+ZEND_BEGIN_ARG_INFO_EX(arginfo_class_RedisCluster_zdiff, 0, 0, 1)
+	ZEND_ARG_INFO(0, keys)
+	ZEND_ARG_INFO(0, options)
+ZEND_END_ARG_INFO()
 
 
 ZEND_METHOD(RedisCluster, __construct);
@@ -834,6 +901,8 @@ ZEND_METHOD(RedisCluster, bitpos);
 ZEND_METHOD(RedisCluster, blpop);
 ZEND_METHOD(RedisCluster, brpop);
 ZEND_METHOD(RedisCluster, brpoplpush);
+ZEND_METHOD(RedisCluster, lmove);
+ZEND_METHOD(RedisCluster, blmove);
 ZEND_METHOD(RedisCluster, bzpopmax);
 ZEND_METHOD(RedisCluster, bzpopmin);
 ZEND_METHOD(RedisCluster, bzmpop);
@@ -847,6 +916,7 @@ ZEND_METHOD(RedisCluster, cluster);
 ZEND_METHOD(RedisCluster, command);
 ZEND_METHOD(RedisCluster, config);
 ZEND_METHOD(RedisCluster, dbsize);
+ZEND_METHOD(RedisCluster, copy);
 ZEND_METHOD(RedisCluster, decr);
 ZEND_METHOD(RedisCluster, decrby);
 ZEND_METHOD(RedisCluster, decrbyfloat);
@@ -875,6 +945,8 @@ ZEND_METHOD(RedisCluster, georadius);
 ZEND_METHOD(RedisCluster, georadius_ro);
 ZEND_METHOD(RedisCluster, georadiusbymember);
 ZEND_METHOD(RedisCluster, georadiusbymember_ro);
+ZEND_METHOD(RedisCluster, geosearch);
+ZEND_METHOD(RedisCluster, geosearchstore);
 ZEND_METHOD(RedisCluster, get);
 ZEND_METHOD(RedisCluster, getbit);
 ZEND_METHOD(RedisCluster, getlasterror);
@@ -896,6 +968,7 @@ ZEND_METHOD(RedisCluster, hlen);
 ZEND_METHOD(RedisCluster, hmget);
 ZEND_METHOD(RedisCluster, hmset);
 ZEND_METHOD(RedisCluster, hscan);
+ZEND_METHOD(RedisCluster, hrandfield);
 ZEND_METHOD(RedisCluster, hset);
 ZEND_METHOD(RedisCluster, hsetnx);
 ZEND_METHOD(RedisCluster, hstrlen);
@@ -911,6 +984,7 @@ ZEND_METHOD(RedisCluster, lindex);
 ZEND_METHOD(RedisCluster, linsert);
 ZEND_METHOD(RedisCluster, llen);
 ZEND_METHOD(RedisCluster, lpop);
+ZEND_METHOD(RedisCluster, lpos);
 ZEND_METHOD(RedisCluster, lpush);
 ZEND_METHOD(RedisCluster, lpushx);
 ZEND_METHOD(RedisCluster, lrange);
@@ -963,6 +1037,7 @@ ZEND_METHOD(RedisCluster, sinter);
 ZEND_METHOD(RedisCluster, sintercard);
 ZEND_METHOD(RedisCluster, sinterstore);
 ZEND_METHOD(RedisCluster, sismember);
+ZEND_METHOD(RedisCluster, smismember);
 ZEND_METHOD(RedisCluster, slowlog);
 ZEND_METHOD(RedisCluster, smembers);
 ZEND_METHOD(RedisCluster, smove);
@@ -1009,6 +1084,7 @@ ZEND_METHOD(RedisCluster, zpopmax);
 ZEND_METHOD(RedisCluster, zpopmin);
 ZEND_METHOD(RedisCluster, zrange);
 ZEND_METHOD(RedisCluster, zrangestore);
+ZEND_METHOD(RedisCluster, zrandmember);
 ZEND_METHOD(RedisCluster, zrangebylex);
 ZEND_METHOD(RedisCluster, zrangebyscore);
 ZEND_METHOD(RedisCluster, zrank);
@@ -1022,7 +1098,12 @@ ZEND_METHOD(RedisCluster, zrevrangebyscore);
 ZEND_METHOD(RedisCluster, zrevrank);
 ZEND_METHOD(RedisCluster, zscan);
 ZEND_METHOD(RedisCluster, zscore);
+ZEND_METHOD(RedisCluster, zmscore);
 ZEND_METHOD(RedisCluster, zunionstore);
+ZEND_METHOD(RedisCluster, zinter);
+ZEND_METHOD(RedisCluster, zdiffstore);
+ZEND_METHOD(RedisCluster, zunion);
+ZEND_METHOD(RedisCluster, zdiff);
 
 
 static const zend_function_entry class_RedisCluster_methods[] = {
@@ -1046,6 +1127,8 @@ static const zend_function_entry class_RedisCluster_methods[] = {
 	ZEND_ME(RedisCluster, blpop, arginfo_class_RedisCluster_blpop, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, brpop, arginfo_class_RedisCluster_brpop, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, brpoplpush, arginfo_class_RedisCluster_brpoplpush, ZEND_ACC_PUBLIC)
+	ZEND_ME(RedisCluster, lmove, arginfo_class_RedisCluster_lmove, ZEND_ACC_PUBLIC)
+	ZEND_ME(RedisCluster, blmove, arginfo_class_RedisCluster_blmove, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, bzpopmax, arginfo_class_RedisCluster_bzpopmax, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, bzpopmin, arginfo_class_RedisCluster_bzpopmin, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, bzmpop, arginfo_class_RedisCluster_bzmpop, ZEND_ACC_PUBLIC)
@@ -1059,6 +1142,7 @@ static const zend_function_entry class_RedisCluster_methods[] = {
 	ZEND_ME(RedisCluster, command, arginfo_class_RedisCluster_command, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, config, arginfo_class_RedisCluster_config, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, dbsize, arginfo_class_RedisCluster_dbsize, ZEND_ACC_PUBLIC)
+	ZEND_ME(RedisCluster, copy, arginfo_class_RedisCluster_copy, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, decr, arginfo_class_RedisCluster_decr, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, decrby, arginfo_class_RedisCluster_decrby, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, decrbyfloat, arginfo_class_RedisCluster_decrbyfloat, ZEND_ACC_PUBLIC)
@@ -1087,6 +1171,8 @@ static const zend_function_entry class_RedisCluster_methods[] = {
 	ZEND_ME(RedisCluster, georadius_ro, arginfo_class_RedisCluster_georadius_ro, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, georadiusbymember, arginfo_class_RedisCluster_georadiusbymember, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, georadiusbymember_ro, arginfo_class_RedisCluster_georadiusbymember_ro, ZEND_ACC_PUBLIC)
+	ZEND_ME(RedisCluster, geosearch, arginfo_class_RedisCluster_geosearch, ZEND_ACC_PUBLIC)
+	ZEND_ME(RedisCluster, geosearchstore, arginfo_class_RedisCluster_geosearchstore, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, get, arginfo_class_RedisCluster_get, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, getbit, arginfo_class_RedisCluster_getbit, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, getlasterror, arginfo_class_RedisCluster_getlasterror, ZEND_ACC_PUBLIC)
@@ -1108,6 +1194,7 @@ static const zend_function_entry class_RedisCluster_methods[] = {
 	ZEND_ME(RedisCluster, hmget, arginfo_class_RedisCluster_hmget, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, hmset, arginfo_class_RedisCluster_hmset, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, hscan, arginfo_class_RedisCluster_hscan, ZEND_ACC_PUBLIC)
+	ZEND_ME(RedisCluster, hrandfield, arginfo_class_RedisCluster_hrandfield, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, hset, arginfo_class_RedisCluster_hset, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, hsetnx, arginfo_class_RedisCluster_hsetnx, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, hstrlen, arginfo_class_RedisCluster_hstrlen, ZEND_ACC_PUBLIC)
@@ -1123,6 +1210,7 @@ static const zend_function_entry class_RedisCluster_methods[] = {
 	ZEND_ME(RedisCluster, linsert, arginfo_class_RedisCluster_linsert, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, llen, arginfo_class_RedisCluster_llen, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, lpop, arginfo_class_RedisCluster_lpop, ZEND_ACC_PUBLIC)
+	ZEND_ME(RedisCluster, lpos, arginfo_class_RedisCluster_lpos, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, lpush, arginfo_class_RedisCluster_lpush, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, lpushx, arginfo_class_RedisCluster_lpushx, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, lrange, arginfo_class_RedisCluster_lrange, ZEND_ACC_PUBLIC)
@@ -1175,6 +1263,7 @@ static const zend_function_entry class_RedisCluster_methods[] = {
 	ZEND_ME(RedisCluster, sintercard, arginfo_class_RedisCluster_sintercard, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, sinterstore, arginfo_class_RedisCluster_sinterstore, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, sismember, arginfo_class_RedisCluster_sismember, ZEND_ACC_PUBLIC)
+	ZEND_ME(RedisCluster, smismember, arginfo_class_RedisCluster_smismember, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, slowlog, arginfo_class_RedisCluster_slowlog, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, smembers, arginfo_class_RedisCluster_smembers, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, smove, arginfo_class_RedisCluster_smove, ZEND_ACC_PUBLIC)
@@ -1183,7 +1272,8 @@ static const zend_function_entry class_RedisCluster_methods[] = {
 	ZEND_ME(RedisCluster, spop, arginfo_class_RedisCluster_spop, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, srandmember, arginfo_class_RedisCluster_srandmember, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, srem, arginfo_class_RedisCluster_srem, ZEND_ACC_PUBLIC)
-	ZEND_ME(RedisCluster, sremint, arginfo_class_RedisCluster_sremint, ZEND_ACC_PUBLIC) //dkmods
+//dkmods
+	ZEND_ME(RedisCluster, sremint, arginfo_class_RedisCluster_sremint, ZEND_ACC_PUBLIC) 
 	ZEND_ME(RedisCluster, sscan, arginfo_class_RedisCluster_sscan, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, strlen, arginfo_class_RedisCluster_strlen, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, subscribe, arginfo_class_RedisCluster_subscribe, ZEND_ACC_PUBLIC)
@@ -1221,6 +1311,7 @@ static const zend_function_entry class_RedisCluster_methods[] = {
 	ZEND_ME(RedisCluster, zpopmin, arginfo_class_RedisCluster_zpopmin, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, zrange, arginfo_class_RedisCluster_zrange, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, zrangestore, arginfo_class_RedisCluster_zrangestore, ZEND_ACC_PUBLIC)
+	ZEND_ME(RedisCluster, zrandmember, arginfo_class_RedisCluster_zrandmember, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, zrangebylex, arginfo_class_RedisCluster_zrangebylex, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, zrangebyscore, arginfo_class_RedisCluster_zrangebyscore, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, zrank, arginfo_class_RedisCluster_zrank, ZEND_ACC_PUBLIC)
@@ -1234,7 +1325,12 @@ static const zend_function_entry class_RedisCluster_methods[] = {
 	ZEND_ME(RedisCluster, zrevrank, arginfo_class_RedisCluster_zrevrank, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, zscan, arginfo_class_RedisCluster_zscan, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, zscore, arginfo_class_RedisCluster_zscore, ZEND_ACC_PUBLIC)
+	ZEND_ME(RedisCluster, zmscore, arginfo_class_RedisCluster_zmscore, ZEND_ACC_PUBLIC)
 	ZEND_ME(RedisCluster, zunionstore, arginfo_class_RedisCluster_zunionstore, ZEND_ACC_PUBLIC)
+	ZEND_ME(RedisCluster, zinter, arginfo_class_RedisCluster_zinter, ZEND_ACC_PUBLIC)
+	ZEND_ME(RedisCluster, zdiffstore, arginfo_class_RedisCluster_zdiffstore, ZEND_ACC_PUBLIC)
+	ZEND_ME(RedisCluster, zunion, arginfo_class_RedisCluster_zunion, ZEND_ACC_PUBLIC)
+	ZEND_ME(RedisCluster, zdiff, arginfo_class_RedisCluster_zdiff, ZEND_ACC_PUBLIC)
 	ZEND_FE_END
 };
 

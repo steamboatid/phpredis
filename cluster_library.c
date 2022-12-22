@@ -1748,6 +1748,20 @@ PHP_REDIS_API void cluster_ping_resp(INTERNAL_FUNCTION_PARAMETERS, redisCluster 
 }
 
 PHP_REDIS_API void
+cluster_hrandfield_resp(INTERNAL_FUNCTION_PARAMETERS, redisCluster *c, void *ctx)
+{
+    if (ctx == NULL) {
+        cluster_bulk_resp(INTERNAL_FUNCTION_PARAM_PASSTHRU, c, NULL);
+    } else if (ctx == PHPREDIS_CTX_PTR) {
+        cluster_mbulk_raw_resp(INTERNAL_FUNCTION_PARAM_PASSTHRU, c, NULL);
+    } else if (ctx == PHPREDIS_CTX_PTR + 1) {
+        return cluster_mbulk_zipdbl_resp(INTERNAL_FUNCTION_PARAM_PASSTHRU, c, NULL);
+    } else {
+        ZEND_ASSERT(!"memory corruption?");
+    }
+}
+
+PHP_REDIS_API void
 cluster_pop_resp(INTERNAL_FUNCTION_PARAMETERS, redisCluster *c, void *ctx)
 {
     if (ctx == NULL) {
@@ -1756,6 +1770,87 @@ cluster_pop_resp(INTERNAL_FUNCTION_PARAMETERS, redisCluster *c, void *ctx)
         cluster_mbulk_raw_resp(INTERNAL_FUNCTION_PARAM_PASSTHRU, c, NULL);
     } else {
         ZEND_ASSERT(!"memory corruption?");
+    }
+}
+
+PHP_REDIS_API void
+cluster_lpos_resp(INTERNAL_FUNCTION_PARAMETERS, redisCluster *c, void *ctx)
+{
+    zval zret = {0};
+
+    c->cmd_sock->null_mbulk_as_null = c->flags->null_mbulk_as_null;
+    if (redis_read_lpos_response(&zret, c->cmd_sock, c->reply_type, c->reply_len, ctx) < 0) {
+        ZVAL_FALSE(&zret);
+    }
+
+    if (CLUSTER_IS_ATOMIC(c)) {
+        RETVAL_ZVAL(&zret, 0, 1);
+    } else {
+        add_next_index_zval(&c->multi_resp, &zret);
+    }
+}
+
+PHP_REDIS_API void
+cluster_geosearch_resp(INTERNAL_FUNCTION_PARAMETERS, redisCluster *c, void *ctx) {
+    zval zret = {0};
+
+    c->cmd_sock->null_mbulk_as_null = c->flags->null_mbulk_as_null;
+    if (c->reply_type != TYPE_MULTIBULK ||
+        redis_read_geosearch_response(&zret, c->cmd_sock, c->reply_len, ctx != NULL) < 0)
+    {
+        ZVAL_FALSE(&zret);
+    }
+
+    if (CLUSTER_IS_ATOMIC(c)) {
+        RETVAL_ZVAL(&zret, 0, 1);
+    } else {
+        add_next_index_zval(&c->multi_resp, &zret);
+    }
+}
+
+PHP_REDIS_API void
+cluster_zdiff_resp(INTERNAL_FUNCTION_PARAMETERS, redisCluster *c, void *ctx) {
+    if (ctx == NULL) {
+        cluster_mbulk_raw_resp(INTERNAL_FUNCTION_PARAM_PASSTHRU, c, NULL);
+    } else if (ctx == PHPREDIS_CTX_PTR) {
+        cluster_mbulk_zipdbl_resp(INTERNAL_FUNCTION_PARAM_PASSTHRU, c, NULL);
+    } else {
+        ZEND_ASSERT(!"memory corruption?");
+    }
+}
+
+PHP_REDIS_API void
+cluster_zrandmember_resp(INTERNAL_FUNCTION_PARAMETERS, redisCluster *c, void *ctx) {
+    if (ctx == NULL) {
+        cluster_bulk_resp(INTERNAL_FUNCTION_PARAM_PASSTHRU, c, NULL);
+    } else if (ctx == PHPREDIS_CTX_PTR) {
+        cluster_mbulk_raw_resp(INTERNAL_FUNCTION_PARAM_PASSTHRU, c, NULL);
+    } else if (ctx == PHPREDIS_CTX_PTR + 1) {
+        cluster_mbulk_zipdbl_resp(INTERNAL_FUNCTION_PARAM_PASSTHRU, c, NULL);
+    } else {
+        ZEND_ASSERT(!"memory corruption?");
+    }
+}
+
+PHP_REDIS_API void
+cluster_srandmember_resp(INTERNAL_FUNCTION_PARAMETERS, redisCluster *c, void *ctx) {
+    if (ctx == NULL) {
+        cluster_bulk_resp(INTERNAL_FUNCTION_PARAM_PASSTHRU, c, NULL);
+    } else if (ctx == PHPREDIS_CTX_PTR) {
+        cluster_mbulk_resp(INTERNAL_FUNCTION_PARAM_PASSTHRU, c, NULL);
+    } else {
+        ZEND_ASSERT(!"memory corruption?");
+    }
+}
+
+PHP_REDIS_API void
+cluster_object_resp(INTERNAL_FUNCTION_PARAMETERS, redisCluster *c, void *ctx) {
+    ZEND_ASSERT(ctx == PHPREDIS_CTX_PTR || ctx == PHPREDIS_CTX_PTR + 1);
+
+    if (ctx == PHPREDIS_CTX_PTR) {
+        cluster_long_resp(INTERNAL_FUNCTION_PARAM_PASSTHRU, c, NULL);
+    } else {
+        cluster_bulk_resp(INTERNAL_FUNCTION_PARAM_PASSTHRU, c, NULL);
     }
 }
 
@@ -2640,6 +2735,14 @@ cluster_mbulk_zipdbl_resp(INTERNAL_FUNCTION_PARAMETERS, redisCluster *c,
         mbulk_resp_loop_zipdbl, NULL);
 }
 
+PHP_REDIS_API void
+cluster_mbulk_dbl_resp(INTERNAL_FUNCTION_PARAMETERS, redisCluster *c,
+                       void *ctx)
+{
+    cluster_gen_mbulk_resp(INTERNAL_FUNCTION_PARAM_PASSTHRU, c,
+        mbulk_resp_loop_dbl, ctx);
+}
+
 /* Associate multi bulk response (for HMGET really) */
 PHP_REDIS_API void
 cluster_mbulk_assoc_resp(INTERNAL_FUNCTION_PARAMETERS, redisCluster *c,
@@ -2652,6 +2755,25 @@ cluster_mbulk_assoc_resp(INTERNAL_FUNCTION_PARAMETERS, redisCluster *c,
 /*
  * Various MULTI BULK reply callback functions
  */
+
+int mbulk_resp_loop_dbl(RedisSock *redis_sock, zval *z_result,
+                        long long count, void *ctx)
+{
+    char *line;
+    int line_len;
+
+    while (count--) {
+        line = redis_sock_read(redis_sock, &line_len);
+        if (line != NULL) {
+            add_next_index_double(z_result, atof(line));
+            efree(line);
+        } else {
+            add_next_index_bool(z_result, 0);
+        }
+    }
+
+    return SUCCESS;
+}
 
 /* MULTI BULK response where we don't touch the values (e.g. KEYS) */
 int mbulk_resp_loop_raw(RedisSock *redis_sock, zval *z_result,

@@ -1185,6 +1185,26 @@ class Redis {
     public function flushDB(?bool $sync = null): Redis|bool;
 
     /**
+     * Functions is an API for managing code to be executed on the server.
+     * 
+     * @param string $operation         The subcommand you intend to execute.  Valid options are as follows
+     *                                  'LOAD'      - Create a new library with the given library name and code.
+     *                                  'DELETE'    - Delete the given library.
+     *                                  'LIST'      - Return general information on all the libraries
+     *                                  'STATS'     - Return information about the current function running
+     *                                  'KILL'      - Kill the current running function
+     *                                  'FLUSH'     - Delete all the libraries
+     *                                  'DUMP'      - Return a serialized payload representing the current libraries
+     *                                  'RESTORE'   - Restore the libraries represented by the given payload
+     * @param member $args              Additional arguments
+     *
+     * @return Redis|bool|string|array  Depends on subcommand.
+     *
+     * @see https://redis.io/commands/function
+     */
+    public function function(string $operation, mixed ...$args): Redis|bool|string|array;
+
+    /**
      * Add one or more members to a geospacial sorted set
      *
      * @param string $key The sorted set to add data to.
@@ -1920,9 +1940,9 @@ class Redis {
      * @param string $src       The source list.
      * @param string $dst       The destination list
      * @param string $wherefrom Where in the source list to retrieve the element.  This can be either
-     *                          `Redis::LEFT`, or `Redis::RIGHT`.
+     *                          - `Redis::LEFT`, or `Redis::RIGHT`.
      * @param string $whereto   Where in the destination list to put the element.  This can be either
-     *                          `Redis::LEFT`, or `Redis::RIGHT`.
+     *                          - `Redis::LEFT`, or `Redis::RIGHT`.
      * @return Redis|string|false The element removed from the source list.
      *
      * @example
@@ -1930,6 +1950,27 @@ class Redis {
      * $redis->lMove('numbers', 'odds', Redis::LEFT, Redis::LEFT);
      */
     public function lMove(string $src, string $dst, string $wherefrom, string $whereto): Redis|string|false;
+
+    /**
+     * Move an element from one list to another, blocking up to a timeout until an element is available.
+     *
+     * @param string $src       The source list
+     * @param string $dst       The destination list
+     * @param string $wherefrom Where in the source list to extract the element.
+     *                          - `Redis::LEFT`, or `Redis::RIGHT`.
+     * @param string $whereto   Where in the destination list to put the element.
+     *                          - `Redis::LEFT`, or `Redis::RIGHT`.
+     * @param float $timeout    How long to block for an element.
+     *
+     * @return Redis|string|false;
+     *
+     * @example
+     * @redis->lPush('numbers', 'one');
+     * @redis->blmove('numbers', 'odds', Redis::LEFT, Redis::LEFT 1.0);
+     * // This call will block, if no additional elements are in 'numbers'
+     * @redis->blmove('numbers', 'odds', Redis::LEFT, Redis::LEFT, 1.0);
+     */
+    public function blmove(string $src, string $dst, string $wherefrom, string $whereto, float $timeout): Redis|string|false;
 
     /**
      * Pop one or more elements off a list.
@@ -2227,11 +2268,11 @@ class Redis {
      *
      * @see https://redis.io/commands/pfcount
      *
-     * @param string $key The key name we wish to query.
+     * @param string $key_or_keys Either one key or an array of keys
      *
      * @return Redis|int The estimated cardinality of the set.
      */
-    public function pfcount(string $key): Redis|int;
+    public function pfcount(array|string $key_or_keys): Redis|int|false;
 
     /**
      * Merge one or more source HyperLogLog sets into a destination set.
@@ -3236,6 +3277,37 @@ class Redis {
     public function sscan(string $key, ?int &$iterator, ?string $pattern = null, int $count = 0): array|false;
 
     /**
+     * Subscribes the client to the specified shard channels.
+     *
+     * @param array    $channels One or more channel names.
+     * @param callable $cb       The callback PhpRedis will invoke when we receive a message
+     *                           from one of the subscribed channels.
+     *
+     * @return bool True on success, false on faiilure.  Note that this command will block the
+     *              client in a subscribe loop, waiting for messages to arrive.
+     *
+     * @see https://redis.io/commands/ssubscribe
+     *
+     * @example
+     * $redis = new Redis(['host' => 'localhost']);
+     *
+     * $redis->ssubscribe(['channel-1', 'channel-2'], function ($redis, $channel, $message) {
+     *     echo "[$channel]: $message\n";
+     *
+     *     // Unsubscribe from the message channel when we read 'quit'
+     *     if ($message == 'quit') {
+     *         echo "Unsubscribing from '$channel'\n";
+     *         $redis->sunsubscribe([$channel]);
+     *     }
+     * });
+     *
+     * // Once we read 'quit' from both channel-1 and channel-2 the subscribe loop will be
+     * // broken and this command will execute.
+     * echo "Subscribe loop ended\n";
+     */
+    public function ssubscribe(array $channels, callable $cb): bool;
+
+    /**
      * Retrieve the length of a Redis STRING key.
      *
      * @param string $key The key we want the length of.
@@ -3279,6 +3351,30 @@ class Redis {
      * echo "Subscribe loop ended\n";
      */
     public function subscribe(array $channels, callable $cb): bool;
+
+    /**
+     * Unsubscribes the client from the given shard channels,
+     * or from all of them if none is given.
+     *
+     * @param array $channels One or more channels to unsubscribe from.
+     * @return Redis|array|bool The array of unsubscribed channels.
+     *
+     * @see https://redis.io/commands/sunsubscribe
+     * @see Redis::ssubscribe()
+     *
+     * @example
+     * $redis->ssubscribe(['channel-1', 'channel-2'], function ($redis, $channel, $message) {
+     *     if ($message == 'quit') {
+     *         echo "$channel => 'quit' detected, unsubscribing!\n";
+     *         $redis->sunsubscribe([$channel]);
+     *     } else {
+     *         echo "$channel => $message\n";
+     *     }
+     * });
+     *
+     * echo "We've unsubscribed from both channels, exiting\n";
+     */
+    public function sunsubscribe(array $channels): Redis|array|bool;
 
     /**
      * Atomically swap two Redis databases so that all of the keys in the source database will
@@ -4032,9 +4128,9 @@ class Redis {
      * @category zset
      *
      * @example $redis->zRange('zset', 0, -1);
-     * @example $redis->zRange('zset', '-inf', 'inf', ['byscore' => true]);
+     * @example $redis->zRange('zset', '-inf', 'inf', ['byscore']);
      */
-    public function zRange(string $key, mixed $start, mixed $end, array|bool|null $options = null): Redis|array|false;
+    public function zRange(string $key, string|int $start, string|int $end, array|bool|null $options = null): Redis|array|false;
 
     /**
      * Retrieve a range of elements from a sorted set by legographical range.

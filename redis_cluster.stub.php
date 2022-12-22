@@ -148,6 +148,21 @@ class RedisCluster {
     public function brpoplpush(string $srckey, string $deskey, int $timeout): mixed;
 
     /**
+     * Move an element from one list into another.
+     *
+     * @see Redis::lmove
+     */
+    public function lmove(string $src, string $dst, string $wherefrom, string $whereto): Redis|string|false;
+
+    /**
+     * Move an element from one list to another, blocking up to a timeout until an element is available.
+     *
+     * @see Redis::blmove
+     *
+     */
+    public function blmove(string $src, string $dst, string $wherefrom, string $whereto, float $timeout): Redis|string|false;
+
+    /**
      * @see Redis::bzpopmax
      */
     public function bzpopmax(string|array $key, string|int $timeout_or_key, mixed ...$extra_args): array;
@@ -211,6 +226,11 @@ class RedisCluster {
      * @see Redis::dbsize()
      */
     public function dbsize(string|array $key_or_address): RedisCluster|int;
+
+    /**
+     * @see https://redis.io/commands/copy
+     */
+    public function copy(string $src, string $dst, array $options = null): RedisCluster|bool;
 
     /**
      * @see Redis::decr()
@@ -353,6 +373,16 @@ class RedisCluster {
     public function georadiusbymember_ro(string $key, string $member, float $radius, string $unit, array $options = []): mixed;
 
     /**
+     * @see https://redis.io/commands/geosearch
+     */
+    public function geosearch(string $key, array|string $position, array|int|float $shape, string $unit, array $options = []): RedisCluster|array;
+
+    /**
+     * @see https://redis.io/commands/geosearchstore
+     */
+    public function geosearchstore(string $dst, string $src, array|string $position, array|int|float $shape, string $unit, array $options = []): RedisCluster|array|int|false;
+
+    /**
      * @see Redis::get
      */
     public function get(string $key): mixed;
@@ -458,6 +488,11 @@ class RedisCluster {
     public function hscan(string $key, ?int &$iterator, ?string $pattern = null, int $count = 0): array|bool;
 
     /**
+     * @see https://redis.io/commands/hrandfield
+     */
+    public function hrandfield(string $key, array $options = null): RedisCluster|string|array;
+
+    /**
      * @see Redis::hset
      */
     public function hset(string $key, string $member, mixed $value): RedisCluster|int|false;
@@ -506,7 +541,7 @@ class RedisCluster {
      *                                     which cluster node we want to send the command to.
      * @param string       $sections       Optional section(s) you wish Redis server to return.
      *
-     * @return Redis|array|false
+     * @return RedisCluster|array|false
      */
     public function info(string|array $key_or_address, string ...$sections): RedisCluster|array|false;
 
@@ -544,6 +579,11 @@ class RedisCluster {
      * @see Redis::lpop
      */
     public function lpop(string $key, int $count = 0): RedisCluster|bool|string|array;
+
+    /**
+     * @see Redis::lpos
+     */
+    public function lpos(string $key, mixed $value, array $options = null): Redis|null|bool|int|array;
 
     /**
      * @see Redis::lpush
@@ -817,6 +857,11 @@ class RedisCluster {
     public function sismember(string $key, mixed $value): RedisCluster|bool;
 
     /**
+     * @see Redis::smismember
+     */
+    public function smismember(string $key, string $member, string ...$other_members): RedisCluster|array|false;
+
+    /**
      * @see Redis::slowlog
      */
     public function slowlog(string|array $key_or_address, mixed ...$args): mixed;
@@ -945,7 +990,7 @@ class RedisCluster {
     /**
      * @see Redis::xautoclaim
      */
-    public function xautoclaim(string $key, string $group, string $consumer, int $min_idle, string $start, int $count = -1, bool $justid = false): Redis|bool|array;
+    public function xautoclaim(string $key, string $group, string $consumer, int $min_idle, string $start, int $count = -1, bool $justid = false): RedisCluster|bool|array;
 
     /**
      * @see Redis::xinfo
@@ -1044,6 +1089,11 @@ class RedisCluster {
                                 array|bool|null $options = null): RedisCluster|int|false;
 
     /**
+     * @see https://redis.io/commands/zRandMember
+     */
+    public function zrandmember(string $key, array $options = null): RedisCluster|string|array;
+
+    /**
      * @see Redis::zrangebylex
      */
     public function zrangebylex(string $key, string $min, string $max, int $offset = -1, int $count = -1): RedisCluster|array|false;
@@ -1109,9 +1159,34 @@ class RedisCluster {
     public function zscore(string $key, mixed $member): RedisCluster|float|false;
 
     /**
+     * @see https://redis.io/commands/zMscore
+     */
+    public function zmscore(string $key, mixed $member, mixed ...$other_members): Redis|array|false;
+
+    /**
      * @see Redis::zunionstore
      */
     public function zunionstore(string $dst, array $keys, ?array $weights = NULL, ?string $aggregate = NULL): RedisCluster|int|false;
+
+    /**
+     * @see https://redis.io/commands/zinter
+     */
+    public function zinter(array $keys, ?array $weights = null, ?array $options = null): RedisCluster|array|false;
+
+    /**
+     * @see https://redis.io/commands/zdiffstore
+     */
+    public function zdiffstore(string $dst, array $keys): RedisCluster|int|false;
+
+    /**
+     * @see https://redis.io/commands/zunion
+     */
+    public function zunion(array $keys, ?array $weights = null, ?array $options = null): RedisCluster|array|false;
+
+    /**
+     * @see https://redis.io/commands/zdiff
+     */
+    public function zdiff(array $keys, array $options = null): RedisCluster|array|false;
 }
 
 class RedisClusterException extends RuntimeException {}
